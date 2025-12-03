@@ -1,0 +1,12 @@
+{
+  "name": "slot-machine-3d",
+  "version": "1.0.0",
+  "description": "3D scene with a rectangular box in the center",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8080"
+  },
+  "keywords": ["3d", "threejs", "slot-machine"],
+  "author": "",
+  "license": "MIT"
+}
