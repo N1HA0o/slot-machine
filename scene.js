@@ -33,6 +33,24 @@ function init() {
     cube.position.set(0, 0.5, 0); // 放置在地面上（y = 高度的一半）
     scene.add(cube);
 
+    // 创建网格地面
+    const gridSize = 50;
+    const gridDivisions = 50;
+    const planeGeometry = new THREE.PlaneGeometry(gridSize, gridSize);
+
+    // 创建网格材质
+    const planeMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ff88,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3
+    });
+
+    const gridPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+    gridPlane.rotation.x = -Math.PI / 2; // 旋转90度使其水平
+    gridPlane.position.y = 0; // 放在y=0的位置
+    scene.add(gridPlane);
+
     // 添加环境光 - 增强亮度
     const ambientLight = new THREE.AmbientLight(0x808080, 2);
     scene.add(ambientLight);
@@ -67,10 +85,6 @@ function onWindowResize() {
 
 function animate() {
     requestAnimationFrame(animate);
-
-    // 轻微旋转长方体以展示3D效果
-    cube.rotation.x += 0.005;
-    cube.rotation.y += 0.01;
 
     // 更新控制器
     controls.update();
