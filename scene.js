@@ -1,5 +1,7 @@
 // 3D场景设置
 let scene, camera, renderer, cube, controls;
+let audioContext, analyser, dataArray, audioElement;
+let bassLevel = 0;
 
 function init() {
     // 创建场景
@@ -22,51 +24,30 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // 创建长方体
-    const geometry = new THREE.BoxGeometry(2, 1, 3); // 宽度, 高度, 深度
+    // 创建长方体 - 直接创建竖直的（宽2, 高3, 深1）
+    const geometry = new THREE.BoxGeometry(2, 3, 1);
     const material = new THREE.MeshPhongMaterial({
         color: 0xffffff, // 白色
         shininess: 100,
         specular: 0x444444
     });
     cube = new THREE.Mesh(geometry, material);
-    cube.rotation.x = Math.PI / 2; // 旋转90度使其竖直站立
-    cube.position.set(0, 1.5, 0); // 放置在地面上（y = 旋转后高度的一半 = 3/2）
+    cube.position.set(0, 1.5, 0); // y = 高度的一半，底部在y=0
     scene.add(cube);
 
     // 添加黑色描边
     const edges = new THREE.EdgesGeometry(geometry);
     const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
     const wireframe = new THREE.LineSegments(edges, lineMaterial);
-    wireframe.rotation.x = Math.PI / 2; // 与立方体相同的旋转
     wireframe.position.set(0, 1.5, 0); // 与立方体位置相同
     scene.add(wireframe);
 
-    // 创建带有轻微球形透视的平面网格地面
+    // 创建完全平面的网格地面
     const gridSize = 50;
     const gridDivisions = 80;
     const planeGeometry = new THREE.PlaneGeometry(gridSize, gridSize, gridDivisions, gridDivisions);
 
-    // 修改顶点位置以创建轻微的球形弯曲效果
-    const positions = planeGeometry.attributes.position;
-    const curveStrength = 0.8; // 弯曲强度（轻微）
-
-    for (let i = 0; i < positions.count; i++) {
-        const x = positions.getX(i);
-        const z = positions.getY(i);
-
-        // 计算距离中心的距离
-        const distance = Math.sqrt(x * x + z * z);
-
-        // 根据距离创建轻微的向下弯曲
-        const y = -Math.pow(distance / gridSize, 2) * curveStrength;
-
-        positions.setZ(i, y);
-    }
-
-    planeGeometry.computeVertexNormals();
-
-    // 创建着色器材质实现渐变消失效果
+    // 创建着色器材质实现渐变消失效果（完全平面，无弯曲）
     const gridMaterial = new THREE.ShaderMaterial({
         uniforms: {
             color: { value: new THREE.Color(0x00ff88) },
@@ -123,8 +104,50 @@ function init() {
     controls.minDistance = 3;
     controls.maxDistance = 20;
 
+    // 初始化音频分析器
+    setupAudioAnalyser();
+
     // 监听窗口大小变化
     window.addEventListener('resize', onWindowResize, false);
+}
+
+// 设置音频分析器
+function setupAudioAnalyser() {
+    audioElement = document.getElementById('bgMusic');
+
+    // 当音频开始播放时初始化分析器
+    audioElement.addEventListener('play', function() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+
+            const source = audioContext.createMediaElementSource(audioElement);
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+
+            const bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+        }
+    });
+}
+
+// 分析音频获取鼓点强度
+function getBasslevel() {
+    if (!analyser || !dataArray) return 0;
+
+    analyser.getByteFrequencyData(dataArray);
+
+    // 获取低频部分（鼓点通常在低频）
+    let sum = 0;
+    const lowFreqCount = Math.floor(dataArray.length * 0.15); // 前15%的频率
+
+    for (let i = 0; i < lowFreqCount; i++) {
+        sum += dataArray[i];
+    }
+
+    const average = sum / lowFreqCount;
+    return average / 255; // 归一化到0-1
 }
 
 function onWindowResize() {
@@ -135,6 +158,17 @@ function onWindowResize() {
 
 function animate() {
     requestAnimationFrame(animate);
+
+    // 获取当前鼓点强度
+    bassLevel = getBasslevel();
+
+    // 根据鼓点强度抖动摄像机
+    if (bassLevel > 0.3) { // 只有当低频能量足够强时才抖动
+        const shakeIntensity = (bassLevel - 0.3) * 0.3; // 抖动强度
+        camera.position.x += (Math.random() - 0.5) * shakeIntensity;
+        camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+        camera.position.z += (Math.random() - 0.5) * shakeIntensity;
+    }
 
     // 更新控制器
     controls.update();
