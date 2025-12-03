@@ -10,12 +10,13 @@ let lastFixedBeatTime = 0;
 let beatCount = 0; // 用于强弱交替
 let onBeat = false;
 
-// 镜头伸缩控制
-const originalCameraX = 2;
-const originalCameraY = 2;
-const originalCameraZ = 5;
+// 镜头伸缩控制（使用偏移量而非绝对位置）
 const originalFOV = 75;
 let currentBeatStrength = 0;
+let cameraOffsetX = 0;
+let cameraOffsetY = 0;
+let cameraOffsetZ = 0;
+let fovOffset = 0;
 
 function init() {
     // 创建场景
@@ -208,36 +209,35 @@ function animate() {
         }
     }
 
-    // 镜头伸缩效果 - 干脆的伸缩 + 轻微抖动 + 快速复位
+    // 更新控制器（让用户可以自由操作视角）
+    controls.update();
+
+    // 镜头伸缩效果 - 使用偏移量，不影响OrbitControls
     if (onBeat) {
-        // 根据节拍强度计算镜头拉近距离（鼓点越强，镜头拉得越近）
-        const zoomIntensity = currentBeatStrength * 0.8; // 最大拉近0.8个单位
-        const fovChange = currentBeatStrength * 4; // FOV最大减少4度
+        // 根据节拍强度计算偏移量（减弱幅度）
+        const zoomIntensity = currentBeatStrength * 0.3; // 最大拉近0.3个单位
+        const fovChange = currentBeatStrength * 2; // FOV最大减少2度
 
         // 轻微随机抖动
-        const shakeAmount = currentBeatStrength * 0.1; // 抖动幅度随鼓点强度变化
-        const shakeX = (Math.random() - 0.5) * shakeAmount;
-        const shakeY = (Math.random() - 0.5) * shakeAmount;
+        const shakeAmount = currentBeatStrength * 0.05; // 抖动幅度
 
-        // 立即应用伸缩和抖动（干脆的效果）
-        camera.position.z = originalCameraZ - zoomIntensity;
-        camera.position.x = originalCameraX + shakeX;
-        camera.position.y = originalCameraY + shakeY;
-        camera.fov = originalFOV - fovChange;
-        camera.updateProjectionMatrix();
+        // 设置偏移量
+        cameraOffsetZ = -zoomIntensity;
+        cameraOffsetX = (Math.random() - 0.5) * shakeAmount;
+        cameraOffsetY = (Math.random() - 0.5) * shakeAmount;
+        fovOffset = -fovChange;
 
         // 立方体缩放效果
-        const scaleIncrease = 1.0 + currentBeatStrength * 0.06;
+        const scaleIncrease = 1.0 + currentBeatStrength * 0.03;
         cube.scale.set(scaleIncrease, scaleIncrease, scaleIncrease);
         wireframe.scale.copy(cube.scale);
     } else {
-        // 快速复位到原始状态
-        const resetSpeed = 0.3; // 更快的复位速度
-        camera.position.x += (originalCameraX - camera.position.x) * resetSpeed;
-        camera.position.y += (originalCameraY - camera.position.y) * resetSpeed;
-        camera.position.z += (originalCameraZ - camera.position.z) * resetSpeed;
-        camera.fov += (originalFOV - camera.fov) * resetSpeed;
-        camera.updateProjectionMatrix();
+        // 快速衰减偏移量
+        const decay = 0.7;
+        cameraOffsetX *= decay;
+        cameraOffsetY *= decay;
+        cameraOffsetZ *= decay;
+        fovOffset *= decay;
 
         // 快速回归立方体缩放
         const scaleReset = 0.25;
@@ -247,11 +247,27 @@ function animate() {
         wireframe.scale.copy(cube.scale);
     }
 
-    // 更新控制器
-    controls.update();
+    // 应用临时偏移（不影响OrbitControls的基础位置）
+    const tempPosX = camera.position.x;
+    const tempPosY = camera.position.y;
+    const tempPosZ = camera.position.z;
+    const tempFOV = camera.fov;
+
+    camera.position.x += cameraOffsetX;
+    camera.position.y += cameraOffsetY;
+    camera.position.z += cameraOffsetZ;
+    camera.fov = originalFOV + fovOffset;
+    camera.updateProjectionMatrix();
 
     // 渲染场景
     renderer.render(scene, camera);
+
+    // 恢复相机位置（让OrbitControls在下一帧正常工作）
+    camera.position.x = tempPosX;
+    camera.position.y = tempPosY;
+    camera.position.z = tempPosZ;
+    camera.fov = tempFOV;
+    camera.updateProjectionMatrix();
 }
 
 // 初始化并开始动画
