@@ -18,34 +18,33 @@
             display: block;
         }
 
-        /* 主信息面板 */
+        /* 主信息面板 - 扁平风格 */
         #info-panel {
             position: absolute;
             top: 20px;
             left: 20px;
             color: white;
-            background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95));
+            background: rgba(20, 20, 20, 0.9);
             padding: 20px;
-            border-radius: 12px;
+            border-radius: 0;
             max-width: 400px;
-            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.3);
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            backdrop-filter: blur(10px);
+            border: 2px solid #00ff88;
         }
 
         #info-panel h1 {
             margin: 0 0 15px 0;
             font-size: 24px;
             color: #00ff88;
-            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+            font-family: 'Courier New', monospace;
         }
 
         #info-panel h2 {
             margin: 15px 0 10px 0;
             font-size: 16px;
-            color: #00ddff;
-            border-bottom: 1px solid rgba(0, 221, 255, 0.3);
+            color: #00ff88;
+            border-bottom: 1px solid #00ff88;
             padding-bottom: 5px;
+            font-family: 'Courier New', monospace;
         }
 
         .feature-list {
@@ -60,10 +59,12 @@
             position: relative;
             font-size: 14px;
             line-height: 1.6;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
         }
 
         .feature-list li:before {
-            content: "✓";
+            content: ">";
             position: absolute;
             left: 0;
             color: #00ff88;
@@ -71,33 +72,36 @@
         }
 
         .controls {
-            background-color: rgba(0, 0, 0, 0.3);
+            background-color: transparent;
             padding: 10px;
-            border-radius: 8px;
+            border-radius: 0;
             margin-top: 10px;
-            border-left: 3px solid #00ff88;
+            border-left: 2px solid #00ff88;
         }
 
         .controls p {
             margin: 5px 0;
             font-size: 13px;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
         }
 
         .toggle-btn {
-            background-color: rgba(0, 255, 136, 0.2);
-            border: 1px solid #00ff88;
+            background-color: transparent;
+            border: 2px solid #00ff88;
             color: #00ff88;
             padding: 8px 15px;
-            border-radius: 5px;
+            border-radius: 0;
             cursor: pointer;
             font-size: 12px;
             margin-top: 10px;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
         }
 
         .toggle-btn:hover {
-            background-color: rgba(0, 255, 136, 0.4);
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+            background-color: #00ff88;
+            color: #000;
         }
 
         .details {
@@ -112,13 +116,14 @@
 
         .badge {
             display: inline-block;
-            background-color: rgba(0, 221, 255, 0.2);
-            color: #00ddff;
+            background-color: transparent;
+            color: #00ff88;
             padding: 2px 8px;
-            border-radius: 10px;
+            border-radius: 0;
             font-size: 11px;
             margin-left: 5px;
-            border: 1px solid rgba(0, 221, 255, 0.3);
+            border: 1px solid #00ff88;
+            font-family: 'Courier New', monospace;
         }
 
         /* 滚动条样式 */
@@ -127,39 +132,38 @@
         }
 
         .details::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 0;
         }
 
         .details::-webkit-scrollbar-thumb {
-            background: rgba(0, 255, 136, 0.5);
-            border-radius: 3px;
+            background: #00ff88;
+            border-radius: 0;
         }
 
         .details::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 255, 136, 0.8);
+            background: #00cc66;
         }
 
-        /* 音乐控制按钮 */
+        /* 音乐控制按钮 - 扁平风格 */
         .music-control {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95));
-            border: 1px solid rgba(0, 255, 136, 0.3);
+            background: rgba(20, 20, 20, 0.9);
+            border: 2px solid #00ff88;
             padding: 15px 20px;
-            border-radius: 10px;
+            border-radius: 0;
             cursor: pointer;
             color: #00ff88;
             font-size: 14px;
-            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.3);
-            transition: all 0.3s;
-            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
         }
 
         .music-control:hover {
-            background: linear-gradient(135deg, rgba(0, 30, 60, 0.95), rgba(0, 50, 100, 0.95));
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            background: #00ff88;
+            color: #000;
         }
 
         .music-control .music-icon {
@@ -169,8 +173,9 @@
 
         .music-info {
             font-size: 11px;
-            color: #00ddff;
+            color: #00ff88;
             margin-top: 5px;
+            font-family: 'Courier New', monospace;
         }
     </style>
 </head>

@@ -30,7 +30,7 @@ function init() {
         specular: 0x444444
     });
     cube = new THREE.Mesh(geometry, material);
-    cube.position.set(0, 0, 0); // 放置在场景中心
+    cube.position.set(0, 0.5, 0); // 放置在地面上（y = 高度的一半）
     scene.add(cube);
 
     // 添加环境光 - 增强亮度
@@ -46,14 +46,6 @@ function init() {
     const pointLight = new THREE.PointLight(0xffffff, 1);
     pointLight.position.set(-5, 5, 5);
     scene.add(pointLight);
-
-    // 添加坐标轴辅助线（可选）
-    const axesHelper = new THREE.AxesHelper(5);
-    scene.add(axesHelper);
-
-    // 添加网格辅助线
-    const gridHelper = new THREE.GridHelper(10, 10);
-    scene.add(gridHelper);
 
     // 添加轨道控制器
     controls = new THREE.OrbitControls(camera, renderer.domElement);
