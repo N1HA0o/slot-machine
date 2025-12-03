@@ -25,7 +25,7 @@ function init() {
     // 创建长方体
     const geometry = new THREE.BoxGeometry(2, 1, 3); // 宽度, 高度, 深度
     const material = new THREE.MeshPhongMaterial({
-        color: 0x00ff88,
+        color: 0xffffff, // 白色
         shininess: 100,
         specular: 0x444444
     });
@@ -33,17 +33,17 @@ function init() {
     cube.position.set(0, 0, 0); // 放置在场景中心
     scene.add(cube);
 
-    // 添加环境光
-    const ambientLight = new THREE.AmbientLight(0x404040, 1);
+    // 添加环境光 - 增强亮度
+    const ambientLight = new THREE.AmbientLight(0x808080, 2);
     scene.add(ambientLight);
 
-    // 添加方向光
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    // 添加方向光 - 增强亮度
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
     directionalLight.position.set(5, 5, 5);
     scene.add(directionalLight);
 
-    // 添加点光源
-    const pointLight = new THREE.PointLight(0xffffff, 0.5);
+    // 添加点光源 - 增强亮度
+    const pointLight = new THREE.PointLight(0xffffff, 1);
     pointLight.position.set(-5, 5, 5);
     scene.add(pointLight);
 

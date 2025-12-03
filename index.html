@@ -139,9 +139,47 @@
         .details::-webkit-scrollbar-thumb:hover {
             background: rgba(0, 255, 136, 0.8);
         }
+
+        /* 音乐控制按钮 */
+        .music-control {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95));
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #00ff88;
+            font-size: 14px;
+            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.3);
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .music-control:hover {
+            background: linear-gradient(135deg, rgba(0, 30, 60, 0.95), rgba(0, 50, 100, 0.95));
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .music-control .music-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .music-info {
+            font-size: 11px;
+            color: #00ddff;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
+    <!-- 背景音乐 -->
+    <audio id="bgMusic" loop>
+        <source src="deadmau5- everything before.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
     <div id="info-panel">
         <h1>3D场景创建完成</h1>
 
@@ -159,7 +197,7 @@
             <ul class="feature-list">
                 <li><strong>位置：</strong>场景正中心 (0, 0, 0)</li>
                 <li><strong>尺寸：</strong>宽2 × 高1 × 深3</li>
-                <li><strong>颜色：</strong>青绿色 (#00ff88)</li>
+                <li><strong>颜色：</strong>白色 (#ffffff)</li>
                 <li><strong>材质：</strong>高光Phong材质</li>
                 <li><strong>动画：</strong>自动缓慢旋转</li>
             </ul>
@@ -190,6 +228,13 @@
         </div>
     </div>
 
+    <!-- 音乐控制按钮 -->
+    <div class="music-control" id="musicControl" onclick="toggleMusic()">
+        <span class="music-icon" id="musicIcon">🎵</span>
+        <span id="musicStatus">点击播放音乐</span>
+        <div class="music-info">deadmau5 - everything before</div>
+    </div>
+
     <!-- 引入Three.js库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -209,6 +254,43 @@
                 btn.textContent = '📋 查看详细信息';
             }
         }
+
+        // 音乐控制
+        let isPlaying = false;
+        const bgMusic = document.getElementById('bgMusic');
+        const musicStatus = document.getElementById('musicStatus');
+        const musicIcon = document.getElementById('musicIcon');
+
+        function toggleMusic() {
+            if (isPlaying) {
+                bgMusic.pause();
+                musicStatus.textContent = '音乐已暂停';
+                musicIcon.textContent = '🎵';
+                isPlaying = false;
+            } else {
+                bgMusic.play().then(() => {
+                    musicStatus.textContent = '正在播放';
+                    musicIcon.textContent = '🎶';
+                    isPlaying = true;
+                }).catch(error => {
+                    console.log('音乐播放失败:', error);
+                    musicStatus.textContent = '播放失败';
+                });
+            }
+        }
+
+        // 自动播放音乐（某些浏览器可能会阻止）
+        window.addEventListener('load', () => {
+            // 尝试自动播放，如果被阻止则需要用户手动点击
+            bgMusic.play().then(() => {
+                musicStatus.textContent = '正在播放';
+                musicIcon.textContent = '🎶';
+                isPlaying = true;
+            }).catch(() => {
+                // 自动播放被阻止，保持默认状态
+                console.log('自动播放被浏览器阻止，请手动点击播放');
+            });
+        });
     </script>
 </body>
 </html>
