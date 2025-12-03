@@ -211,11 +211,11 @@ function animate() {
     // 镜头伸缩效果 - 干脆的伸缩 + 轻微抖动 + 快速复位
     if (onBeat) {
         // 根据节拍强度计算镜头拉近距离（鼓点越强，镜头拉得越近）
-        const zoomIntensity = currentBeatStrength * 1.5; // 最大拉近1.5个单位
-        const fovChange = currentBeatStrength * 8; // FOV最大减少8度
+        const zoomIntensity = currentBeatStrength * 0.8; // 最大拉近0.8个单位
+        const fovChange = currentBeatStrength * 4; // FOV最大减少4度
 
         // 轻微随机抖动
-        const shakeAmount = currentBeatStrength * 0.15; // 抖动幅度随鼓点强度变化
+        const shakeAmount = currentBeatStrength * 0.1; // 抖动幅度随鼓点强度变化
         const shakeX = (Math.random() - 0.5) * shakeAmount;
         const shakeY = (Math.random() - 0.5) * shakeAmount;
 
@@ -227,7 +227,7 @@ function animate() {
         camera.updateProjectionMatrix();
 
         // 立方体缩放效果
-        const scaleIncrease = 1.0 + currentBeatStrength * 0.12;
+        const scaleIncrease = 1.0 + currentBeatStrength * 0.06;
         cube.scale.set(scaleIncrease, scaleIncrease, scaleIncrease);
         wireframe.scale.copy(cube.scale);
     } else {
