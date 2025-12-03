@@ -5,36 +5,210 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D场景 - 长方体</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             margin: 0;
             overflow: hidden;
             background-color: #000;
+            font-family: 'Arial', 'Microsoft YaHei', sans-serif;
         }
         canvas {
             display: block;
         }
-        #info {
+
+        /* 主信息面板 */
+        #info-panel {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 20px;
+            left: 20px;
             color: white;
-            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95));
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.3);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        #info-panel h1 {
+            margin: 0 0 15px 0;
+            font-size: 24px;
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        #info-panel h2 {
+            margin: 15px 0 10px 0;
+            font-size: 16px;
+            color: #00ddff;
+            border-bottom: 1px solid rgba(0, 221, 255, 0.3);
+            padding-bottom: 5px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        .feature-list li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
             font-size: 14px;
-            background-color: rgba(0, 0, 0, 0.5);
+            line-height: 1.6;
+        }
+
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .controls {
+            background-color: rgba(0, 0, 0, 0.3);
             padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .controls p {
+            margin: 5px 0;
+            font-size: 13px;
+        }
+
+        .toggle-btn {
+            background-color: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 8px 15px;
             border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn:hover {
+            background-color: rgba(0, 255, 136, 0.4);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .details {
+            margin-top: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .details.hidden {
+            display: none;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: rgba(0, 221, 255, 0.2);
+            color: #00ddff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 5px;
+            border: 1px solid rgba(0, 221, 255, 0.3);
+        }
+
+        /* 滚动条样式 */
+        .details::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .details::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        .details::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 136, 0.5);
+            border-radius: 3px;
+        }
+
+        .details::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 136, 0.8);
         }
     </style>
 </head>
 <body>
-    <div id="info">
-        3D场景 - 中央长方体<br>
-        使用鼠标拖拽旋转视角
+    <div id="info-panel">
+        <h1>3D场景创建完成</h1>
+
+        <div class="controls">
+            <p><strong>🖱️ 交互控制：</strong></p>
+            <p>• 左键拖拽：旋转视角</p>
+            <p>• 滚轮：缩放视角</p>
+            <p>• 右键拖拽：平移视角</p>
+        </div>
+
+        <button class="toggle-btn" onclick="toggleDetails()">📋 查看详细信息</button>
+
+        <div class="details hidden" id="details">
+            <h2>🎯 长方体属性</h2>
+            <ul class="feature-list">
+                <li><strong>位置：</strong>场景正中心 (0, 0, 0)</li>
+                <li><strong>尺寸：</strong>宽2 × 高1 × 深3</li>
+                <li><strong>颜色：</strong>青绿色 (#00ff88)</li>
+                <li><strong>材质：</strong>高光Phong材质</li>
+                <li><strong>动画：</strong>自动缓慢旋转</li>
+            </ul>
+
+            <h2>✨ 场景特性</h2>
+            <ul class="feature-list">
+                <li><strong>摄像机：</strong>透视相机 (FOV 75°)</li>
+                <li><strong>环境光：</strong>柔和基础照明</li>
+                <li><strong>方向光：</strong>主光源 (5, 5, 5)</li>
+                <li><strong>点光源：</strong>补充光源 (-5, 5, 5)</li>
+                <li><strong>辅助线：</strong>坐标轴 + 网格地面</li>
+                <li><strong>轨道控制：</strong>支持鼠标交互</li>
+            </ul>
+
+            <h2>📦 技术栈</h2>
+            <ul class="feature-list">
+                <li><strong>Three.js</strong><span class="badge">r128</span></li>
+                <li><strong>OrbitControls</strong><span class="badge">交互</span></li>
+                <li><strong>WebGL</strong><span class="badge">渲染器</span></li>
+            </ul>
+
+            <h2>📁 项目文件</h2>
+            <ul class="feature-list">
+                <li><strong>index.html</strong> - 主页面</li>
+                <li><strong>scene.js</strong> - 3D场景代码</li>
+                <li><strong>package.json</strong> - 项目配置</li>
+            </ul>
+        </div>
     </div>
 
     <!-- 引入Three.js库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="scene.js"></script>
+
+    <script>
+        // 切换详细信息显示/隐藏
+        function toggleDetails() {
+            const details = document.getElementById('details');
+            const btn = document.querySelector('.toggle-btn');
+
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                btn.textContent = '📋 隐藏详细信息';
+            } else {
+                details.classList.add('hidden');
+                btn.textContent = '📋 查看详细信息';
+            }
+        }
+    </script>
 </body>
 </html>
