@@ -3,6 +3,14 @@ let scene, camera, renderer, cube, controls;
 let audioContext, analyser, dataArray, audioElement;
 let bassLevel = 0;
 
+// BPM检测和节拍跟踪
+let detectedBPM = 0;
+let beatInterval = 0;
+let lastBeatTime = 0;
+let beatHistory = [];
+let energyHistory = [];
+let onBeat = false;
+
 function init() {
     // 创建场景
     scene = new THREE.Scene();
@@ -150,6 +158,52 @@ function getBasslevel() {
     return average / 255; // 归一化到0-1
 }
 
+// 实时BPM检测和节拍跟踪
+function detectBeatAndBPM() {
+    if (!analyser || !dataArray) return;
+
+    const currentEnergy = getBasslevel();
+    const currentTime = Date.now();
+
+    // 保存能量历史（最近100帧）
+    energyHistory.push(currentEnergy);
+    if (energyHistory.length > 100) {
+        energyHistory.shift();
+    }
+
+    // 计算能量平均值和阈值
+    const avgEnergy = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
+    const threshold = avgEnergy * 1.3; // 阈值为平均值的1.3倍
+
+    // 检测节拍（能量突然增强）
+    if (currentEnergy > threshold && currentEnergy > 0.4) {
+        // 防止过于频繁的节拍检测（至少间隔200ms）
+        if (currentTime - lastBeatTime > 200) {
+            onBeat = true;
+
+            // 记录节拍间隔用于BPM计算
+            const interval = currentTime - lastBeatTime;
+            beatHistory.push(interval);
+
+            // 保留最近8个节拍
+            if (beatHistory.length > 8) {
+                beatHistory.shift();
+            }
+
+            // 计算BPM（如果有足够的节拍历史）
+            if (beatHistory.length >= 4) {
+                const avgInterval = beatHistory.reduce((a, b) => a + b, 0) / beatHistory.length;
+                detectedBPM = Math.round(60000 / avgInterval); // 转换为BPM
+                beatInterval = avgInterval;
+            }
+
+            lastBeatTime = currentTime;
+        }
+    } else {
+        onBeat = false;
+    }
+}
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -159,15 +213,42 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // 获取当前鼓点强度
-    bassLevel = getBasslevel();
+    // 检测节拍和BPM
+    detectBeatAndBPM();
 
-    // 根据鼓点强度抖动摄像机
-    if (bassLevel > 0.3) { // 只有当低频能量足够强时才抖动
-        const shakeIntensity = (bassLevel - 0.3) * 0.3; // 抖动强度
-        camera.position.x += (Math.random() - 0.5) * shakeIntensity;
-        camera.position.y += (Math.random() - 0.5) * shakeIntensity;
-        camera.position.z += (Math.random() - 0.5) * shakeIntensity;
+    // 更新BPM显示
+    const bpmDisplay = document.getElementById('bpmValue');
+    const beatIndicator = document.getElementById('beatIndicator');
+    if (bpmDisplay && detectedBPM > 0) {
+        bpmDisplay.textContent = detectedBPM;
+    }
+
+    // 更新节拍指示器
+    if (beatIndicator) {
+        if (onBeat) {
+            beatIndicator.classList.add('active');
+        } else {
+            beatIndicator.classList.remove('active');
+        }
+    }
+
+    // 在节拍点精确抖动
+    if (onBeat) {
+        const shakeIntensity = 0.15; // 固定抖动强度，更明显
+        const shakeX = (Math.random() - 0.5) * shakeIntensity;
+        const shakeY = (Math.random() - 0.5) * shakeIntensity;
+        const shakeZ = (Math.random() - 0.5) * shakeIntensity;
+
+        camera.position.x += shakeX;
+        camera.position.y += shakeY;
+        camera.position.z += shakeZ;
+
+        // 同时抖动立方体（轻微）
+        cube.position.y += (Math.random() - 0.5) * 0.05;
+    } else {
+        // 平滑回归原位
+        const smoothFactor = 0.1;
+        cube.position.y += (1.5 - cube.position.y) * smoothFactor;
     }
 
     // 更新控制器
