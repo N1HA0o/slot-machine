@@ -30,14 +30,16 @@ function init() {
         specular: 0x444444
     });
     cube = new THREE.Mesh(geometry, material);
-    cube.position.set(0, 0.5, 0); // 放置在地面上（y = 高度的一半）
+    cube.rotation.x = Math.PI / 2; // 旋转90度使其竖直站立
+    cube.position.set(0, 1.5, 0); // 放置在地面上（y = 旋转后高度的一半 = 3/2）
     scene.add(cube);
 
     // 添加黑色描边
     const edges = new THREE.EdgesGeometry(geometry);
     const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
     const wireframe = new THREE.LineSegments(edges, lineMaterial);
-    wireframe.position.set(0, 0.5, 0); // 与立方体位置相同
+    wireframe.rotation.x = Math.PI / 2; // 与立方体相同的旋转
+    wireframe.position.set(0, 1.5, 0); // 与立方体位置相同
     scene.add(wireframe);
 
     // 创建球形网格地面
