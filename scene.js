@@ -42,24 +42,35 @@ function init() {
     wireframe.position.set(0, 1.5, 0); // 与立方体位置相同
     scene.add(wireframe);
 
-    // 创建球形网格地面
-    // 使用球体几何创建弧形地面
-    const sphereRadius = 30;
-    const sphereGeometry = new THREE.SphereGeometry(
-        sphereRadius, // 半径
-        64, // 水平分段
-        32, // 垂直分段
-        0, // phiStart
-        Math.PI * 2, // phiLength (完整圆周)
-        0, // thetaStart
-        Math.PI / 2.5 // thetaLength (只显示上半部分的一部分)
-    );
+    // 创建带有轻微球形透视的平面网格地面
+    const gridSize = 50;
+    const gridDivisions = 80;
+    const planeGeometry = new THREE.PlaneGeometry(gridSize, gridSize, gridDivisions, gridDivisions);
 
-    // 创建顶点着色器和片段着色器来实现渐变效果
+    // 修改顶点位置以创建轻微的球形弯曲效果
+    const positions = planeGeometry.attributes.position;
+    const curveStrength = 0.8; // 弯曲强度（轻微）
+
+    for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const z = positions.getY(i);
+
+        // 计算距离中心的距离
+        const distance = Math.sqrt(x * x + z * z);
+
+        // 根据距离创建轻微的向下弯曲
+        const y = -Math.pow(distance / gridSize, 2) * curveStrength;
+
+        positions.setZ(i, y);
+    }
+
+    planeGeometry.computeVertexNormals();
+
+    // 创建着色器材质实现渐变消失效果
     const gridMaterial = new THREE.ShaderMaterial({
         uniforms: {
             color: { value: new THREE.Color(0x00ff88) },
-            radius: { value: sphereRadius }
+            maxDistance: { value: gridSize / 2 }
         },
         vertexShader: `
             varying vec3 vPosition;
@@ -70,13 +81,13 @@ function init() {
         `,
         fragmentShader: `
             uniform vec3 color;
-            uniform float radius;
+            uniform float maxDistance;
             varying vec3 vPosition;
             void main() {
-                // 计算距离中心的距离来实现渐变
-                float dist = length(vPosition.xz) / radius;
-                float alpha = 1.0 - smoothstep(0.2, 1.0, dist);
-                alpha *= 0.4; // 整体透明度
+                // 计算距离中心的距离来实现径向渐变
+                float dist = length(vPosition.xy) / maxDistance;
+                float alpha = 1.0 - smoothstep(0.3, 1.0, dist);
+                alpha *= 0.5; // 整体透明度
                 gl_FragColor = vec4(color, alpha);
             }
         `,
@@ -85,10 +96,10 @@ function init() {
         side: THREE.DoubleSide
     });
 
-    const gridSphere = new THREE.Mesh(sphereGeometry, gridMaterial);
-    gridSphere.rotation.x = 0;
-    gridSphere.position.y = -sphereRadius + 0.5; // 调整位置使顶部在y=0
-    scene.add(gridSphere);
+    const gridPlane = new THREE.Mesh(planeGeometry, gridMaterial);
+    gridPlane.rotation.x = -Math.PI / 2; // 旋转使其水平
+    gridPlane.position.y = 0; // 放在y=0，与立方体底部对齐
+    scene.add(gridPlane);
 
     // 添加环境光 - 增强亮度
     const ambientLight = new THREE.AmbientLight(0x808080, 2);
