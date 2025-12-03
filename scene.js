@@ -3,12 +3,16 @@ let scene, camera, renderer, cube, wireframe, controls;
 let audioContext, analyser, dataArray, audioElement;
 let bassLevel = 0;
 
-// BPM检测和节拍跟踪
+// BPM检测（仅用于显示）
 let detectedBPM = 0;
-let beatInterval = 0;
-let lastBeatTime = 0;
 let beatHistory = [];
 let energyHistory = [];
+
+// 固定128 BPM节拍控制
+const FIXED_BPM = 128;
+const BEAT_INTERVAL = 60000 / FIXED_BPM; // 468.75ms
+let lastFixedBeatTime = 0;
+let beatCount = 0; // 用于强弱交替
 let onBeat = false;
 
 // 镜头伸缩控制
@@ -165,8 +169,8 @@ function getBasslevel() {
     return average / 255; // 归一化到0-1
 }
 
-// 实时BPM检测和节拍跟踪
-function detectBeatAndBPM() {
+// BPM检测（仅用于显示）
+function detectBPM() {
     if (!analyser || !dataArray) return;
 
     const currentEnergy = getBasslevel();
@@ -180,39 +184,29 @@ function detectBeatAndBPM() {
 
     // 计算能量平均值和阈值
     const avgEnergy = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
-    const threshold = avgEnergy * 1.3; // 阈值为平均值的1.3倍
+    const threshold = avgEnergy * 1.3;
 
-    // 检测节拍（能量突然增强）
+    // 检测节拍用于BPM计算（不用于触发zoom）
     if (currentEnergy > threshold && currentEnergy > 0.4) {
-        // 防止过于频繁的节拍检测（至少间隔200ms）
+        const lastBeatTime = beatHistory.length > 0 ? beatHistory[beatHistory.length - 1].time : 0;
         if (currentTime - lastBeatTime > 200) {
-            onBeat = true;
-
-            // 记录当前节拍强度（归一化到0-1，然后映射到更合适的范围）
-            currentBeatStrength = Math.min((currentEnergy - 0.4) / 0.6, 1.0);
-
-            // 记录节拍间隔用于BPM计算
-            const interval = currentTime - lastBeatTime;
-            beatHistory.push(interval);
+            beatHistory.push({ time: currentTime, energy: currentEnergy });
 
             // 保留最近8个节拍
             if (beatHistory.length > 8) {
                 beatHistory.shift();
             }
 
-            // 计算BPM（如果有足够的节拍历史）
+            // 计算BPM
             if (beatHistory.length >= 4) {
-                const avgInterval = beatHistory.reduce((a, b) => a + b, 0) / beatHistory.length;
-                detectedBPM = Math.round(60000 / avgInterval); // 转换为BPM
-                beatInterval = avgInterval;
+                let totalInterval = 0;
+                for (let i = 1; i < beatHistory.length; i++) {
+                    totalInterval += beatHistory[i].time - beatHistory[i - 1].time;
+                }
+                const avgInterval = totalInterval / (beatHistory.length - 1);
+                detectedBPM = Math.round(60000 / avgInterval);
             }
-
-            lastBeatTime = currentTime;
         }
-    } else {
-        onBeat = false;
-        // 平滑降低节拍强度
-        currentBeatStrength *= 0.8;
     }
 }
 
@@ -225,14 +219,34 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // 检测节拍和BPM
-    detectBeatAndBPM();
+    // 检测BPM（仅用于显示）
+    detectBPM();
 
-    // 更新BPM显示
+    // 固定128 BPM节拍触发
+    const currentTime = Date.now();
+    if (currentTime - lastFixedBeatTime >= BEAT_INTERVAL) {
+        onBeat = true;
+        lastFixedBeatTime = currentTime;
+        beatCount++;
+
+        // 获取当前音频能量作为强度调节
+        const currentEnergy = getBasslevel();
+        // 强弱交替：偶数拍为强拍，奇数拍为弱拍
+        const isStrongBeat = beatCount % 2 === 0;
+        const beatMultiplier = isStrongBeat ? 1.0 : 0.5; // 强拍100%，弱拍50%
+
+        // 最终强度 = 音频能量 × 强弱系数
+        currentBeatStrength = Math.min(currentEnergy, 1.0) * beatMultiplier;
+    } else {
+        onBeat = false;
+    }
+
+    // 更新BPM显示（显示检测到的BPM和固定BPM）
     const bpmDisplay = document.getElementById('bpmValue');
     const beatIndicator = document.getElementById('beatIndicator');
-    if (bpmDisplay && detectedBPM > 0) {
-        bpmDisplay.textContent = detectedBPM;
+    if (bpmDisplay) {
+        const displayText = detectedBPM > 0 ? `${detectedBPM} (固定${FIXED_BPM})` : FIXED_BPM;
+        bpmDisplay.textContent = displayText;
     }
 
     // 更新节拍指示器
@@ -244,7 +258,7 @@ function animate() {
         }
     }
 
-    // 镜头伸缩效果 - 干脆的伸缩 + 轻微抖动 + 立即复位
+    // 镜头伸缩效果 - 干脆的伸缩 + 轻微抖动 + 快速复位
     if (onBeat) {
         // 根据节拍强度计算镜头拉近距离（鼓点越强，镜头拉得越近）
         const zoomIntensity = currentBeatStrength * 1.5; // 最大拉近1.5个单位
