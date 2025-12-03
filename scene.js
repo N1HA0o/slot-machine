@@ -1,5 +1,5 @@
 // 3D场景设置
-let scene, camera, renderer, cube, controls;
+let scene, camera, renderer, cube, wireframe, controls;
 let audioContext, analyser, dataArray, audioElement;
 let bassLevel = 0;
 
@@ -10,6 +10,13 @@ let lastBeatTime = 0;
 let beatHistory = [];
 let energyHistory = [];
 let onBeat = false;
+
+// 镜头伸缩控制
+const originalCameraZ = 5;
+const originalFOV = 75;
+let targetCameraZ = originalCameraZ;
+let targetFOV = originalFOV;
+let currentBeatStrength = 0;
 
 function init() {
     // 创建场景
@@ -46,7 +53,7 @@ function init() {
     // 添加黑色描边
     const edges = new THREE.EdgesGeometry(geometry);
     const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
-    const wireframe = new THREE.LineSegments(edges, lineMaterial);
+    wireframe = new THREE.LineSegments(edges, lineMaterial);
     wireframe.position.set(0, 1.5, 0); // 与立方体位置相同
     scene.add(wireframe);
 
@@ -181,6 +188,9 @@ function detectBeatAndBPM() {
         if (currentTime - lastBeatTime > 200) {
             onBeat = true;
 
+            // 记录当前节拍强度（归一化到0-1，然后映射到更合适的范围）
+            currentBeatStrength = Math.min((currentEnergy - 0.4) / 0.6, 1.0);
+
             // 记录节拍间隔用于BPM计算
             const interval = currentTime - lastBeatTime;
             beatHistory.push(interval);
@@ -201,6 +211,8 @@ function detectBeatAndBPM() {
         }
     } else {
         onBeat = false;
+        // 平滑降低节拍强度
+        currentBeatStrength *= 0.8;
     }
 }
 
@@ -232,24 +244,39 @@ function animate() {
         }
     }
 
-    // 在节拍点精确抖动
+    // 镜头伸缩效果 - 根据鼓点强度动态调整
     if (onBeat) {
-        const shakeIntensity = 0.15; // 固定抖动强度，更明显
-        const shakeX = (Math.random() - 0.5) * shakeIntensity;
-        const shakeY = (Math.random() - 0.5) * shakeIntensity;
-        const shakeZ = (Math.random() - 0.5) * shakeIntensity;
+        // 根据节拍强度计算镜头拉近距离
+        // 鼓点越强，镜头拉得越近
+        const zoomIntensity = currentBeatStrength * 2.0; // 最大拉近2个单位
+        const fovChange = currentBeatStrength * 10; // FOV最大减少10度
 
-        camera.position.x += shakeX;
-        camera.position.y += shakeY;
-        camera.position.z += shakeZ;
+        targetCameraZ = originalCameraZ - zoomIntensity; // 拉近镜头
+        targetFOV = originalFOV - fovChange; // 减小FOV（放大效果）
 
-        // 同时抖动立方体（轻微）
-        cube.position.y += (Math.random() - 0.5) * 0.05;
+        // 立方体轻微放大效果
+        const scaleIncrease = 1.0 + currentBeatStrength * 0.1;
+        cube.scale.set(scaleIncrease, scaleIncrease, scaleIncrease);
     } else {
-        // 平滑回归原位
-        const smoothFactor = 0.1;
-        cube.position.y += (1.5 - cube.position.y) * smoothFactor;
+        // 平滑回归原始状态
+        targetCameraZ = originalCameraZ;
+        targetFOV = originalFOV;
     }
+
+    // 平滑过渡镜头位置和FOV
+    const smoothFactor = 0.15;
+    camera.position.z += (targetCameraZ - camera.position.z) * smoothFactor;
+    camera.fov += (targetFOV - camera.fov) * smoothFactor;
+    camera.updateProjectionMatrix();
+
+    // 平滑回归立方体缩放
+    const scaleSmooth = 0.1;
+    cube.scale.x += (1.0 - cube.scale.x) * scaleSmooth;
+    cube.scale.y += (1.0 - cube.scale.y) * scaleSmooth;
+    cube.scale.z += (1.0 - cube.scale.z) * scaleSmooth;
+
+    // 同步黑色描边缩放
+    wireframe.scale.copy(cube.scale);
 
     // 更新控制器
     controls.update();
