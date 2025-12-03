@@ -3,11 +3,6 @@ let scene, camera, renderer, cube, wireframe, controls;
 let audioContext, analyser, dataArray, audioElement;
 let bassLevel = 0;
 
-// BPM检测（仅用于显示）
-let detectedBPM = 0;
-let beatHistory = [];
-let energyHistory = [];
-
 // 固定128 BPM节拍控制
 const FIXED_BPM = 128;
 const BEAT_INTERVAL = 60000 / FIXED_BPM; // 468.75ms
@@ -169,47 +164,6 @@ function getBasslevel() {
     return average / 255; // 归一化到0-1
 }
 
-// BPM检测（仅用于显示）
-function detectBPM() {
-    if (!analyser || !dataArray) return;
-
-    const currentEnergy = getBasslevel();
-    const currentTime = Date.now();
-
-    // 保存能量历史（最近100帧）
-    energyHistory.push(currentEnergy);
-    if (energyHistory.length > 100) {
-        energyHistory.shift();
-    }
-
-    // 计算能量平均值和阈值
-    const avgEnergy = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
-    const threshold = avgEnergy * 1.3;
-
-    // 检测节拍用于BPM计算（不用于触发zoom）
-    if (currentEnergy > threshold && currentEnergy > 0.4) {
-        const lastBeatTime = beatHistory.length > 0 ? beatHistory[beatHistory.length - 1].time : 0;
-        if (currentTime - lastBeatTime > 200) {
-            beatHistory.push({ time: currentTime, energy: currentEnergy });
-
-            // 保留最近8个节拍
-            if (beatHistory.length > 8) {
-                beatHistory.shift();
-            }
-
-            // 计算BPM
-            if (beatHistory.length >= 4) {
-                let totalInterval = 0;
-                for (let i = 1; i < beatHistory.length; i++) {
-                    totalInterval += beatHistory[i].time - beatHistory[i - 1].time;
-                }
-                const avgInterval = totalInterval / (beatHistory.length - 1);
-                detectedBPM = Math.round(60000 / avgInterval);
-            }
-        }
-    }
-}
-
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -218,9 +172,6 @@ function onWindowResize() {
 
 function animate() {
     requestAnimationFrame(animate);
-
-    // 检测BPM（仅用于显示）
-    detectBPM();
 
     // 固定128 BPM节拍触发
     const currentTime = Date.now();
@@ -241,12 +192,11 @@ function animate() {
         onBeat = false;
     }
 
-    // 更新BPM显示（显示检测到的BPM和固定BPM）
+    // 更新BPM显示（仅显示固定128）
     const bpmDisplay = document.getElementById('bpmValue');
     const beatIndicator = document.getElementById('beatIndicator');
     if (bpmDisplay) {
-        const displayText = detectedBPM > 0 ? `${detectedBPM} (固定${FIXED_BPM})` : FIXED_BPM;
-        bpmDisplay.textContent = displayText;
+        bpmDisplay.textContent = FIXED_BPM;
     }
 
     // 更新节拍指示器
