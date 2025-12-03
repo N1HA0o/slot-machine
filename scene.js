@@ -40,23 +40,53 @@ function init() {
     wireframe.position.set(0, 0.5, 0); // 与立方体位置相同
     scene.add(wireframe);
 
-    // 创建网格地面
-    const gridSize = 50;
-    const gridDivisions = 50;
-    const planeGeometry = new THREE.PlaneGeometry(gridSize, gridSize);
+    // 创建球形网格地面
+    // 使用球体几何创建弧形地面
+    const sphereRadius = 30;
+    const sphereGeometry = new THREE.SphereGeometry(
+        sphereRadius, // 半径
+        64, // 水平分段
+        32, // 垂直分段
+        0, // phiStart
+        Math.PI * 2, // phiLength (完整圆周)
+        0, // thetaStart
+        Math.PI / 2.5 // thetaLength (只显示上半部分的一部分)
+    );
 
-    // 创建网格材质
-    const planeMaterial = new THREE.MeshBasicMaterial({
-        color: 0x00ff88,
+    // 创建顶点着色器和片段着色器来实现渐变效果
+    const gridMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            color: { value: new THREE.Color(0x00ff88) },
+            radius: { value: sphereRadius }
+        },
+        vertexShader: `
+            varying vec3 vPosition;
+            void main() {
+                vPosition = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 color;
+            uniform float radius;
+            varying vec3 vPosition;
+            void main() {
+                // 计算距离中心的距离来实现渐变
+                float dist = length(vPosition.xz) / radius;
+                float alpha = 1.0 - smoothstep(0.2, 1.0, dist);
+                alpha *= 0.4; // 整体透明度
+                gl_FragColor = vec4(color, alpha);
+            }
+        `,
         wireframe: true,
         transparent: true,
-        opacity: 0.3
+        side: THREE.DoubleSide
     });
 
-    const gridPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-    gridPlane.rotation.x = -Math.PI / 2; // 旋转90度使其水平
-    gridPlane.position.y = 0; // 放在y=0的位置
-    scene.add(gridPlane);
+    const gridSphere = new THREE.Mesh(sphereGeometry, gridMaterial);
+    gridSphere.rotation.x = 0;
+    gridSphere.position.y = -sphereRadius + 0.5; // 调整位置使顶部在y=0
+    scene.add(gridSphere);
 
     // 添加环境光 - 增强亮度
     const ambientLight = new THREE.AmbientLight(0x808080, 2);
