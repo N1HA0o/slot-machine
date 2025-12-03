@@ -33,6 +33,13 @@ function init() {
     cube.position.set(0, 0.5, 0); // 放置在地面上（y = 高度的一半）
     scene.add(cube);
 
+    // 添加黑色描边
+    const edges = new THREE.EdgesGeometry(geometry);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+    const wireframe = new THREE.LineSegments(edges, lineMaterial);
+    wireframe.position.set(0, 0.5, 0); // 与立方体位置相同
+    scene.add(wireframe);
+
     // 创建网格地面
     const gridSize = 50;
     const gridDivisions = 50;
