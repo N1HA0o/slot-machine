@@ -12,10 +12,10 @@ let energyHistory = [];
 let onBeat = false;
 
 // 镜头伸缩控制
+const originalCameraX = 2;
+const originalCameraY = 2;
 const originalCameraZ = 5;
 const originalFOV = 75;
-let targetCameraZ = originalCameraZ;
-let targetFOV = originalFOV;
 let currentBeatStrength = 0;
 
 function init() {
@@ -244,39 +244,44 @@ function animate() {
         }
     }
 
-    // 镜头伸缩效果 - 根据鼓点强度动态调整
+    // 镜头伸缩效果 - 干脆的伸缩 + 轻微抖动 + 立即复位
     if (onBeat) {
-        // 根据节拍强度计算镜头拉近距离
-        // 鼓点越强，镜头拉得越近
-        const zoomIntensity = currentBeatStrength * 2.0; // 最大拉近2个单位
-        const fovChange = currentBeatStrength * 10; // FOV最大减少10度
+        // 根据节拍强度计算镜头拉近距离（鼓点越强，镜头拉得越近）
+        const zoomIntensity = currentBeatStrength * 1.5; // 最大拉近1.5个单位
+        const fovChange = currentBeatStrength * 8; // FOV最大减少8度
 
-        targetCameraZ = originalCameraZ - zoomIntensity; // 拉近镜头
-        targetFOV = originalFOV - fovChange; // 减小FOV（放大效果）
+        // 轻微随机抖动
+        const shakeAmount = currentBeatStrength * 0.15; // 抖动幅度随鼓点强度变化
+        const shakeX = (Math.random() - 0.5) * shakeAmount;
+        const shakeY = (Math.random() - 0.5) * shakeAmount;
 
-        // 立方体轻微放大效果
-        const scaleIncrease = 1.0 + currentBeatStrength * 0.1;
+        // 立即应用伸缩和抖动（干脆的效果）
+        camera.position.z = originalCameraZ - zoomIntensity;
+        camera.position.x = originalCameraX + shakeX;
+        camera.position.y = originalCameraY + shakeY;
+        camera.fov = originalFOV - fovChange;
+        camera.updateProjectionMatrix();
+
+        // 立方体缩放效果
+        const scaleIncrease = 1.0 + currentBeatStrength * 0.12;
         cube.scale.set(scaleIncrease, scaleIncrease, scaleIncrease);
+        wireframe.scale.copy(cube.scale);
     } else {
-        // 平滑回归原始状态
-        targetCameraZ = originalCameraZ;
-        targetFOV = originalFOV;
+        // 快速复位到原始状态
+        const resetSpeed = 0.3; // 更快的复位速度
+        camera.position.x += (originalCameraX - camera.position.x) * resetSpeed;
+        camera.position.y += (originalCameraY - camera.position.y) * resetSpeed;
+        camera.position.z += (originalCameraZ - camera.position.z) * resetSpeed;
+        camera.fov += (originalFOV - camera.fov) * resetSpeed;
+        camera.updateProjectionMatrix();
+
+        // 快速回归立方体缩放
+        const scaleReset = 0.25;
+        cube.scale.x += (1.0 - cube.scale.x) * scaleReset;
+        cube.scale.y += (1.0 - cube.scale.y) * scaleReset;
+        cube.scale.z += (1.0 - cube.scale.z) * scaleReset;
+        wireframe.scale.copy(cube.scale);
     }
-
-    // 平滑过渡镜头位置和FOV
-    const smoothFactor = 0.15;
-    camera.position.z += (targetCameraZ - camera.position.z) * smoothFactor;
-    camera.fov += (targetFOV - camera.fov) * smoothFactor;
-    camera.updateProjectionMatrix();
-
-    // 平滑回归立方体缩放
-    const scaleSmooth = 0.1;
-    cube.scale.x += (1.0 - cube.scale.x) * scaleSmooth;
-    cube.scale.y += (1.0 - cube.scale.y) * scaleSmooth;
-    cube.scale.z += (1.0 - cube.scale.z) * scaleSmooth;
-
-    // 同步黑色描边缩放
-    wireframe.scale.copy(cube.scale);
 
     // 更新控制器
     controls.update();
