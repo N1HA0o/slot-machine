@@ -97,6 +97,52 @@ function init() {
     gridPlane.position.y = 0; // 放在y=0，与立方体底部对齐
     scene.add(gridPlane);
 
+    // 创建地面光圈 - 以长方体为中心，光线从中心向外减弱
+    const glowRadius = 8;
+    const glowGeometry = new THREE.CircleGeometry(glowRadius, 64);
+    const glowMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            glowColor: { value: new THREE.Color(0x00ff88) },
+            maxRadius: { value: glowRadius }
+        },
+        vertexShader: `
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            void main() {
+                vUv = uv;
+                vPosition = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 glowColor;
+            uniform float maxRadius;
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            void main() {
+                // 计算距离中心的距离
+                float dist = length(vPosition.xy);
+                // 从中心向外强度减弱（中心最亮）
+                float intensity = 1.0 - smoothstep(0.0, maxRadius, dist);
+                intensity = pow(intensity, 2.0); // 平方衰减，更自然
+
+                // 整体透明度
+                float alpha = intensity * 0.4;
+
+                gl_FragColor = vec4(glowColor, alpha);
+            }
+        `,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthWrite: false, // 避免透明度问题
+        blending: THREE.AdditiveBlending // 叠加混合，更有发光效果
+    });
+
+    const glowCircle = new THREE.Mesh(glowGeometry, glowMaterial);
+    glowCircle.rotation.x = -Math.PI / 2; // 旋转使其水平
+    glowCircle.position.set(0, 0.01, 0); // 稍微高于地面，避免z-fighting
+    scene.add(glowCircle);
+
     // 添加环境光 - 增强亮度
     const ambientLight = new THREE.AmbientLight(0x808080, 2);
     scene.add(ambientLight);
