@@ -106,7 +106,7 @@ function init() {
 
     // 创建破碎三角形圆圈 - 以长方体为中心，半径5，越远越浅
     const fragmentRadius = 5;
-    const fragmentCount = 150; // 三角形碎片数量
+    const fragmentCount = 75; // 三角形碎片数量
 
     for (let i = 0; i < fragmentCount; i++) {
         // 在圆形区域内随机分布
@@ -115,8 +115,8 @@ function init() {
         const x = Math.cos(angle) * distance;
         const z = Math.sin(angle) * distance;
 
-        // 创建随机大小的三角形
-        const size = 0.1 + Math.random() * 0.15; // 0.1-0.25随机大小
+        // 创建随机大小的三角形（增大尺寸）
+        const size = 0.2 + Math.random() * 0.25; // 0.2-0.45随机大小
         const triangleGeometry = new THREE.BufferGeometry();
         const vertices = new Float32Array([
             0, 0, 0,
@@ -134,7 +134,7 @@ function init() {
         const triangleMaterial = new THREE.MeshBasicMaterial({
             color: color,
             transparent: true,
-            opacity: intensity * 0.7,
+            opacity: intensity * 0.8,
             side: THREE.DoubleSide
         });
 
@@ -146,6 +146,20 @@ function init() {
         triangleMesh.position.set(x, 0.01, z);
 
         scene.add(triangleMesh);
+
+        // 添加三角形边框，使形状更清晰
+        const edgesGeometry = new THREE.EdgesGeometry(triangleGeometry);
+        const edgesMaterial = new THREE.LineBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: intensity * 0.9
+        });
+        const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+        edges.rotation.x = -Math.PI / 2;
+        edges.rotation.z = triangleMesh.rotation.z;
+        edges.position.set(x, 0.011, z); // 略高于三角形面
+
+        scene.add(edges);
     }
 
     // 添加环境光 - 增强亮度
