@@ -104,54 +104,49 @@ function init() {
     gridPlane.position.y = 0; // 放在y=0，与立方体底部对齐
     scene.add(gridPlane);
 
-    // 创建地面绿色投影 - 以长方体为中心，向外延伸并渐变消失
-    const glowRadius = 15; // 扩大范围
-    const glowGeometry = new THREE.CircleGeometry(glowRadius, 64);
-    const glowMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-            glowColor: { value: new THREE.Color(0x00ff88) },
-            maxRadius: { value: glowRadius }
-        },
-        vertexShader: `
-            varying vec2 vUv;
-            varying vec3 vPosition;
-            void main() {
-                vUv = uv;
-                vPosition = position;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            uniform vec3 glowColor;
-            uniform float maxRadius;
-            varying vec2 vUv;
-            varying vec3 vPosition;
-            void main() {
-                // 计算距离中心的距离
-                float dist = length(vPosition.xy);
-                float normalizedDist = dist / maxRadius;
+    // 创建破碎三角形圆圈 - 以长方体为中心，半径5，越远越浅
+    const fragmentRadius = 5;
+    const fragmentCount = 150; // 三角形碎片数量
 
-                // 中心区域（长方体底部）更亮，向外逐渐变浅
-                float intensity = 1.0 - smoothstep(0.0, 1.0, normalizedDist);
-                intensity = pow(intensity, 1.2); // 更柔和的衰减曲线
+    for (let i = 0; i < fragmentCount; i++) {
+        // 在圆形区域内随机分布
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.sqrt(Math.random()) * fragmentRadius; // 平方根分布使其均匀
+        const x = Math.cos(angle) * distance;
+        const z = Math.sin(angle) * distance;
 
-                // 越远越浅：颜色强度和透明度都减弱
-                vec3 finalColor = glowColor * intensity;
-                float alpha = intensity * 0.7; // 提高基础亮度
+        // 创建随机大小的三角形
+        const size = 0.1 + Math.random() * 0.15; // 0.1-0.25随机大小
+        const triangleGeometry = new THREE.BufferGeometry();
+        const vertices = new Float32Array([
+            0, 0, 0,
+            size, 0, 0,
+            size * 0.5, 0, size * 0.866 // 等边三角形
+        ]);
+        triangleGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
 
-                gl_FragColor = vec4(finalColor, alpha);
-            }
-        `,
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthWrite: false, // 避免透明度问题
-        blending: THREE.AdditiveBlending // 叠加混合，更有发光效果
-    });
+        // 根据距离中心的距离计算颜色强度（越远越浅）
+        const normalizedDist = distance / fragmentRadius;
+        const intensity = 1.0 - normalizedDist;
+        const color = new THREE.Color(0x00ff88);
+        color.multiplyScalar(intensity);
 
-    const glowCircle = new THREE.Mesh(glowGeometry, glowMaterial);
-    glowCircle.rotation.x = -Math.PI / 2; // 旋转使其水平
-    glowCircle.position.set(0, 0.02, 0); // 稍微高于地面，避免z-fighting
-    scene.add(glowCircle);
+        const triangleMaterial = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: intensity * 0.7,
+            side: THREE.DoubleSide
+        });
+
+        const triangleMesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
+
+        // 随机旋转和位置
+        triangleMesh.rotation.x = -Math.PI / 2;
+        triangleMesh.rotation.z = Math.random() * Math.PI * 2;
+        triangleMesh.position.set(x, 0.01, z);
+
+        scene.add(triangleMesh);
+    }
 
     // 添加环境光 - 增强亮度
     const ambientLight = new THREE.AmbientLight(0x808080, 2);
