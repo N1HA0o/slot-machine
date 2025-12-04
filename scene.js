@@ -104,8 +104,8 @@ function init() {
     gridPlane.position.y = 0; // 放在y=0，与立方体底部对齐
     scene.add(gridPlane);
 
-    // 创建地面光圈 - 以长方体为中心，光线从中心向外减弱
-    const glowRadius = 8;
+    // 创建地面绿色投影 - 以长方体为中心，向外延伸并渐变消失
+    const glowRadius = 15; // 扩大范围
     const glowGeometry = new THREE.CircleGeometry(glowRadius, 64);
     const glowMaterial = new THREE.ShaderMaterial({
         uniforms: {
@@ -129,14 +129,17 @@ function init() {
             void main() {
                 // 计算距离中心的距离
                 float dist = length(vPosition.xy);
-                // 从中心向外强度减弱（中心最亮）
-                float intensity = 1.0 - smoothstep(0.0, maxRadius, dist);
-                intensity = pow(intensity, 2.0); // 平方衰减，更自然
+                float normalizedDist = dist / maxRadius;
 
-                // 整体透明度
-                float alpha = intensity * 0.4;
+                // 中心区域（长方体底部）更亮，向外逐渐变浅
+                float intensity = 1.0 - smoothstep(0.0, 1.0, normalizedDist);
+                intensity = pow(intensity, 1.2); // 更柔和的衰减曲线
 
-                gl_FragColor = vec4(glowColor, alpha);
+                // 越远越浅：颜色强度和透明度都减弱
+                vec3 finalColor = glowColor * intensity;
+                float alpha = intensity * 0.7; // 提高基础亮度
+
+                gl_FragColor = vec4(finalColor, alpha);
             }
         `,
         transparent: true,
@@ -147,7 +150,7 @@ function init() {
 
     const glowCircle = new THREE.Mesh(glowGeometry, glowMaterial);
     glowCircle.rotation.x = -Math.PI / 2; // 旋转使其水平
-    glowCircle.position.set(0, 0.01, 0); // 稍微高于地面，避免z-fighting
+    glowCircle.position.set(0, 0.02, 0); // 稍微高于地面，避免z-fighting
     scene.add(glowCircle);
 
     // 添加环境光 - 增强亮度
