@@ -62,10 +62,10 @@ function init() {
     const gridDivisions = 80;
     const planeGeometry = new THREE.PlaneGeometry(gridSize, gridSize, gridDivisions, gridDivisions);
 
-    // 创建着色器材质实现渐变消失效果（完全平面，无弯曲）
+    // 创建着色器材质实现径向渐变效果（中心绿色，向外变浅）
     const gridMaterial = new THREE.ShaderMaterial({
         uniforms: {
-            color: { value: new THREE.Color(0x00ff88) },
+            centerColor: { value: new THREE.Color(0x00ff88) }, // 中心亮绿色
             maxDistance: { value: gridSize / 2 }
         },
         vertexShader: `
@@ -76,15 +76,22 @@ function init() {
             }
         `,
         fragmentShader: `
-            uniform vec3 color;
+            uniform vec3 centerColor;
             uniform float maxDistance;
             varying vec3 vPosition;
             void main() {
-                // 计算距离中心的距离来实现径向渐变
+                // 计算距离中心的距离
                 float dist = length(vPosition.xy) / maxDistance;
-                float alpha = 1.0 - smoothstep(0.3, 1.0, dist);
-                alpha *= 0.5; // 整体透明度
-                gl_FragColor = vec4(color, alpha);
+
+                // 中心最亮，向外渐变变浅
+                float intensity = 1.0 - smoothstep(0.0, 1.0, dist);
+                intensity = pow(intensity, 1.5); // 渐变曲线
+
+                // 颜色强度从亮绿色渐变到接近透明
+                vec3 finalColor = centerColor * intensity;
+                float alpha = intensity * 0.6; // 透明度也随之减弱
+
+                gl_FragColor = vec4(finalColor, alpha);
             }
         `,
         wireframe: true,
