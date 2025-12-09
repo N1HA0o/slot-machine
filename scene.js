@@ -216,16 +216,28 @@ function init() {
             isDragging = false;
             controls.enabled = true; // 恢复视角移动
 
-            // 松手后回弹
-            const returnSpeed = 0.15;
-            const returnInterval = setInterval(() => {
-                leverAngle *= (1 - returnSpeed);
-                leverGroup.rotation.z = -leverAngle;
+            // 松手后弹簧振动回弹
+            const startAngle = leverAngle;
+            const startTime = Date.now();
+            const duration = 800; // 总持续时间800ms
+            const frequency = 12; // 振荡频率
+            const damping = 4; // 阻尼系数
 
-                if (Math.abs(leverAngle) < 0.01) {
+            const springInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const t = elapsed / duration;
+
+                if (t >= 1) {
+                    // 回弹完成
                     leverAngle = 0;
                     leverGroup.rotation.z = 0;
-                    clearInterval(returnInterval);
+                    clearInterval(springInterval);
+                } else {
+                    // 弹簧振荡效果：衰减振荡
+                    const decay = Math.exp(-damping * t); // 指数衰减
+                    const oscillation = Math.cos(frequency * t * Math.PI); // 余弦振荡
+                    leverAngle = startAngle * decay * oscillation;
+                    leverGroup.rotation.z = -leverAngle;
                 }
             }, 16); // 约60fps
         }
