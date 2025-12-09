@@ -145,10 +145,55 @@ function init() {
     let isDragging = false;
     let leverAngle = 0; // 当前角度
     const maxLeverAngle = Math.PI / 3; // 最大拉下角度（60度）
+    let isHovering = false; // 是否悬停在拉杆上
 
     // 鼠标/触摸事件监听
     let mouse = new THREE.Vector2();
     let raycaster = new THREE.Raycaster();
+
+    function onMouseMove(event) {
+        // 更新鼠标位置
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(handle);
+
+        // 悬停效果
+        if (intersects.length > 0 && !isDragging) {
+            if (!isHovering) {
+                isHovering = true;
+                // 添加发光效果
+                handleMaterial.emissive.setHex(0xff3333);
+                handleMaterial.emissiveIntensity = 0.5;
+                document.body.style.cursor = 'pointer';
+            }
+        } else if (!isDragging) {
+            if (isHovering) {
+                isHovering = false;
+                // 移除发光效果
+                handleMaterial.emissive.setHex(0x000000);
+                handleMaterial.emissiveIntensity = 0;
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        // 拉动逻辑
+        if (isDragging) {
+            event.preventDefault(); // 防止选中文本
+
+            // 根据鼠标Y位置调整拉杆角度
+            const normalizedY = 1 - (event.clientY / window.innerHeight);
+            leverAngle = THREE.MathUtils.clamp(
+                (normalizedY - 0.5) * maxLeverAngle * 2,
+                0,
+                maxLeverAngle
+            );
+
+            // 应用旋转
+            leverGroup.rotation.z = -leverAngle; // 向前拉
+        }
+    }
 
     function onMouseDown(event) {
         // 计算鼠标位置
@@ -161,36 +206,28 @@ function init() {
         if (intersects.length > 0) {
             event.preventDefault(); // 防止选中文本
             isDragging = true;
-            controls.enabled = false; // 禁用轨道控制
+            controls.enabled = false; // 禁用轨道控制，锁定视角
         }
-    }
-
-    function onMouseMove(event) {
-        if (!isDragging) return;
-
-        event.preventDefault(); // 防止选中文本
-
-        // 根据鼠标Y位置调整拉杆角度
-        const normalizedY = 1 - (event.clientY / window.innerHeight);
-        leverAngle = THREE.MathUtils.clamp(
-            (normalizedY - 0.5) * maxLeverAngle * 2,
-            0,
-            maxLeverAngle
-        );
-
-        // 应用旋转
-        leverGroup.rotation.z = -leverAngle; // 向前拉
     }
 
     function onMouseUp(event) {
         if (isDragging) {
             event.preventDefault(); // 防止选中文本
             isDragging = false;
-            controls.enabled = true; // 重新启用轨道控制
+            controls.enabled = true; // 恢复视角移动
 
             // 松手后回弹
-            leverAngle = 0;
-            leverGroup.rotation.z = 0;
+            const returnSpeed = 0.15;
+            const returnInterval = setInterval(() => {
+                leverAngle *= (1 - returnSpeed);
+                leverGroup.rotation.z = -leverAngle;
+
+                if (Math.abs(leverAngle) < 0.01) {
+                    leverAngle = 0;
+                    leverGroup.rotation.z = 0;
+                    clearInterval(returnInterval);
+                }
+            }, 16); // 约60fps
         }
     }
 
