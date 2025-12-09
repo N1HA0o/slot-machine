@@ -190,8 +190,8 @@ function init() {
                 maxLeverAngle
             );
 
-            // 应用旋转（改为X轴旋转，左右拉动）
-            leverGroup.rotation.x = -leverAngle; // 向侧面拉
+            // 应用旋转（X轴旋转，反向180度）
+            leverGroup.rotation.x = leverAngle; // 改变方向
         }
     }
 
@@ -237,7 +237,7 @@ function init() {
                     const decay = Math.exp(-damping * t); // 指数衰减
                     const oscillation = Math.cos(frequency * t * Math.PI); // 余弦振荡
                     leverAngle = startAngle * decay * oscillation;
-                    leverGroup.rotation.x = -leverAngle;
+                    leverGroup.rotation.x = leverAngle;
                 }
             }, 16); // 约60fps
         }
