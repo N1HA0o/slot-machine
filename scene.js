@@ -206,7 +206,7 @@ function init() {
         if (intersects.length > 0) {
             event.preventDefault(); // 防止选中文本
             isDragging = true;
-            controls.enabled = false; // 禁用轨道控制，锁定视角
+            // 视角已永久禁用，无需切换
         }
     }
 
@@ -214,7 +214,7 @@ function init() {
         if (isDragging) {
             event.preventDefault(); // 防止选中文本
             isDragging = false;
-            controls.enabled = true; // 恢复视角移动
+            // 视角已永久禁用，无需恢复
 
             // 松手后弹簧振动回弹
             const startAngle = leverAngle;
@@ -270,13 +270,12 @@ function init() {
     pointLight.position.set(-5, 5, 5);
     scene.add(pointLight);
 
-    // 添加轨道控制器
+    // 添加轨道控制器（完全禁用）
     controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.screenSpacePanning = false;
-    controls.minDistance = 3;
-    controls.maxDistance = 20;
+    controls.enabled = false; // 完全禁用左键和右键视角移动
+    controls.enableRotate = false; // 禁用旋转
+    controls.enablePan = false; // 禁用平移
+    controls.enableZoom = false; // 禁用缩放
 
     // 初始化音频分析器
     setupAudioAnalyser();
