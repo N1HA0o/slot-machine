@@ -159,6 +159,7 @@ function init() {
         const intersects = raycaster.intersectObject(handle);
 
         if (intersects.length > 0) {
+            event.preventDefault(); // 防止选中文本
             isDragging = true;
             controls.enabled = false; // 禁用轨道控制
         }
@@ -166,6 +167,8 @@ function init() {
 
     function onMouseMove(event) {
         if (!isDragging) return;
+
+        event.preventDefault(); // 防止选中文本
 
         // 根据鼠标Y位置调整拉杆角度
         const normalizedY = 1 - (event.clientY / window.innerHeight);
@@ -179,8 +182,9 @@ function init() {
         leverGroup.rotation.z = -leverAngle; // 向前拉
     }
 
-    function onMouseUp() {
+    function onMouseUp(event) {
         if (isDragging) {
+            event.preventDefault(); // 防止选中文本
             isDragging = false;
             controls.enabled = true; // 重新启用轨道控制
 
@@ -189,6 +193,11 @@ function init() {
             leverGroup.rotation.z = 0;
         }
     }
+
+    // 添加CSS防止选中
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+    document.body.style.mozUserSelect = 'none';
 
     window.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
