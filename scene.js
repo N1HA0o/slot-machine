@@ -104,63 +104,99 @@ function init() {
     gridPlane.position.y = 0; // 放在y=0，与立方体底部对齐
     scene.add(gridPlane);
 
-    // 创建破碎三角形圆圈 - 以长方体为中心，半径5，越远越浅
-    const fragmentRadius = 5;
-    const fragmentCount = 75; // 三角形碎片数量
+    // 创建拉杆 - 在长方体右侧
+    const leverGroup = new THREE.Group();
 
-    for (let i = 0; i < fragmentCount; i++) {
-        // 在圆形区域内随机分布
-        const angle = Math.random() * Math.PI * 2;
-        const distance = Math.sqrt(Math.random()) * fragmentRadius; // 平方根分布使其均匀
-        const x = Math.cos(angle) * distance;
-        const z = Math.sin(angle) * distance;
+    // 拉杆手柄（球形）
+    const handleGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+    const handleMaterial = new THREE.MeshPhongMaterial({
+        color: 0xff0000, // 红色手柄
+        shininess: 100
+    });
+    const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+    handle.position.set(0, 0.8, 0); // 在杆的顶部
+    leverGroup.add(handle);
 
-        // 创建随机大小的三角形（增大尺寸）
-        const size = 0.2 + Math.random() * 0.25; // 0.2-0.45随机大小
-        const triangleGeometry = new THREE.BufferGeometry();
-        const vertices = new Float32Array([
-            0, 0, 0,
-            size, 0, 0,
-            size * 0.5, 0, size * 0.866 // 等边三角形
-        ]);
-        triangleGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    // 拉杆杆身（圆柱）
+    const rodGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.8, 16);
+    const rodMaterial = new THREE.MeshPhongMaterial({
+        color: 0x888888, // 灰色杆身
+        shininess: 50
+    });
+    const rod = new THREE.Mesh(rodGeometry, rodMaterial);
+    rod.position.set(0, 0.4, 0);
+    leverGroup.add(rod);
 
-        // 根据距离中心的距离计算颜色强度（越远越浅）
-        const normalizedDist = distance / fragmentRadius;
-        const intensity = 1.0 - normalizedDist;
-        const color = new THREE.Color(0x00ff88);
-        color.multiplyScalar(intensity);
+    // 拉杆底座（圆柱）
+    const baseGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16);
+    const baseMaterial = new THREE.MeshPhongMaterial({
+        color: 0x444444, // 深灰色底座
+        shininess: 30
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, 0.05, 0);
+    leverGroup.add(base);
 
-        const triangleMaterial = new THREE.MeshBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: intensity * 0.8,
-            side: THREE.DoubleSide
-        });
+    // 拉杆位置：长方体右侧（x = 1，长方体宽度的一半）
+    leverGroup.position.set(1.3, 1.5, 0); // 在长方体右侧，底部对齐
+    scene.add(leverGroup);
 
-        const triangleMesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
+    // 拉杆交互变量
+    let isDragging = false;
+    let leverAngle = 0; // 当前角度
+    const maxLeverAngle = Math.PI / 3; // 最大拉下角度（60度）
 
-        // 随机旋转和位置
-        triangleMesh.rotation.x = -Math.PI / 2;
-        triangleMesh.rotation.z = Math.random() * Math.PI * 2;
-        triangleMesh.position.set(x, 0.01, z);
+    // 鼠标/触摸事件监听
+    let mouse = new THREE.Vector2();
+    let raycaster = new THREE.Raycaster();
 
-        scene.add(triangleMesh);
+    function onMouseDown(event) {
+        // 计算鼠标位置
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        // 添加三角形边框，使形状更清晰
-        const edgesGeometry = new THREE.EdgesGeometry(triangleGeometry);
-        const edgesMaterial = new THREE.LineBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: intensity * 0.9
-        });
-        const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
-        edges.rotation.x = -Math.PI / 2;
-        edges.rotation.z = triangleMesh.rotation.z;
-        edges.position.set(x, 0.011, z); // 略高于三角形面
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(handle);
 
-        scene.add(edges);
+        if (intersects.length > 0) {
+            isDragging = true;
+            controls.enabled = false; // 禁用轨道控制
+        }
     }
+
+    function onMouseMove(event) {
+        if (!isDragging) return;
+
+        // 根据鼠标Y位置调整拉杆角度
+        const normalizedY = 1 - (event.clientY / window.innerHeight);
+        leverAngle = THREE.MathUtils.clamp(
+            (normalizedY - 0.5) * maxLeverAngle * 2,
+            0,
+            maxLeverAngle
+        );
+
+        // 应用旋转
+        leverGroup.rotation.z = -leverAngle; // 向前拉
+    }
+
+    function onMouseUp() {
+        if (isDragging) {
+            isDragging = false;
+            controls.enabled = true; // 重新启用轨道控制
+
+            // 松手后回弹
+            leverAngle = 0;
+            leverGroup.rotation.z = 0;
+        }
+    }
+
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchstart', onMouseDown);
+    window.addEventListener('touchmove', onMouseMove);
+    window.addEventListener('touchend', onMouseUp);
+
 
     // 添加环境光 - 增强亮度
     const ambientLight = new THREE.AmbientLight(0x808080, 2);
