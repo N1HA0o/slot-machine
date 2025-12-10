@@ -190,8 +190,8 @@ function init() {
                 maxLeverAngle
             );
 
-            // 应用旋转（Z轴旋转，向右拉动）
-            leverGroup.rotation.z = leverAngle;
+            // 应用旋转（X轴旋转，向左转90度）
+            leverGroup.rotation.x = leverAngle;
         }
     }
 
@@ -230,14 +230,14 @@ function init() {
                 if (t >= 1) {
                     // 回弹完成
                     leverAngle = 0;
-                    leverGroup.rotation.z = 0;
+                    leverGroup.rotation.x = 0;
                     clearInterval(springInterval);
                 } else {
                     // 弹簧振荡效果：衰减振荡
                     const decay = Math.exp(-damping * t); // 指数衰减
                     const oscillation = Math.cos(frequency * t * Math.PI); // 余弦振荡
                     leverAngle = startAngle * decay * oscillation;
-                    leverGroup.rotation.z = leverAngle;
+                    leverGroup.rotation.x = leverAngle;
                 }
             }, 16); // 约60fps
         }
