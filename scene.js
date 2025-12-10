@@ -139,6 +139,7 @@ function init() {
 
     // 拉杆位置：长方体右侧（x = 1，长方体宽度的一半）
     leverGroup.position.set(1.3, 1.5, 0); // 在长方体右侧，底部对齐
+    leverGroup.rotation.y = -Math.PI / 2; // 向左旋转90度
     scene.add(leverGroup);
 
     // 拉杆交互变量
@@ -190,8 +191,8 @@ function init() {
                 maxLeverAngle
             );
 
-            // 应用旋转（X轴旋转，向左转90度）
-            leverGroup.rotation.x = leverAngle;
+            // 应用旋转（Z轴旋转）
+            leverGroup.rotation.z = leverAngle;
         }
     }
 
@@ -230,14 +231,14 @@ function init() {
                 if (t >= 1) {
                     // 回弹完成
                     leverAngle = 0;
-                    leverGroup.rotation.x = 0;
+                    leverGroup.rotation.z = 0;
                     clearInterval(springInterval);
                 } else {
                     // 弹簧振荡效果：衰减振荡
                     const decay = Math.exp(-damping * t); // 指数衰减
                     const oscillation = Math.cos(frequency * t * Math.PI); // 余弦振荡
                     leverAngle = startAngle * decay * oscillation;
-                    leverGroup.rotation.x = leverAngle;
+                    leverGroup.rotation.z = leverAngle;
                 }
             }, 16); // 约60fps
         }
