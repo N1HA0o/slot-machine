@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阈光之旅 - Threshold Light Journey</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <!-- 主游戏画布 -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- 摄像头视频流（隐藏） -->
+        <video id="webcam" autoplay playsinline style="display: none;"></video>
+
+        <!-- 手势识别画布（调试用，可选显示） -->
+        <canvas id="gestureCanvas" style="display: none;"></canvas>
+
+        <!-- UI层 -->
+        <div id="ui-overlay">
+            <div id="gesture-indicator" class="hidden">
+                <div class="indicator-left">←</div>
+                <div class="indicator-right">→</div>
+            </div>
+
+            <div id="loading-screen">
+                <h1>阈光之旅</h1>
+                <p>正在加载...</p>
+                <button id="startButton" style="display: none;">开始体验</button>
+                <p id="status" class="status-text"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <!-- 游戏模块 -->
+    <script src="lighting.js"></script>
+    <script src="character.js"></script>
+    <script src="gestureControl.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
