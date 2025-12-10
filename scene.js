@@ -1,16 +1,16 @@
-// 3D场景设置
+// 3D scene setup
 let scene, camera, renderer, cube, wireframe, controls;
 let audioContext, analyser, dataArray, audioElement;
 let bassLevel = 0;
 
-// 固定128 BPM节拍控制
+// Fixed 128 BPM beat control
 const FIXED_BPM = 128;
 const BEAT_INTERVAL = 60000 / FIXED_BPM; // 468.75ms
 let lastFixedBeatTime = 0;
-let beatCount = 0; // 用于强弱交替
+let beatCount = 0; // For strong-weak alternation
 let onBeat = false;
 
-// 镜头伸缩控制（使用偏移量而非绝对位置）
+// Camera zoom control (using offsets instead of absolute positions)
 const originalFOV = 75;
 let currentBeatStrength = 0;
 let cameraOffsetX = 0;
@@ -19,53 +19,53 @@ let cameraOffsetZ = 0;
 let fovOffset = 0;
 
 function init() {
-    // 创建场景
+    // Create scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a1a);
 
-    // 创建摄像机
+    // Create camera
     camera = new THREE.PerspectiveCamera(
-        75, // 视角
-        window.innerWidth / window.innerHeight, // 宽高比
-        0.1, // 近裁剪面
-        1000 // 远裁剪面
+        75, // Field of view
+        window.innerWidth / window.innerHeight, // Aspect ratio
+        0.1, // Near clipping plane
+        1000 // Far clipping plane
     );
     camera.position.z = 5;
     camera.position.y = 2;
     camera.position.x = 2;
 
-    // 创建渲染器
+    // Create renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // 创建长方体 - 直接创建竖直的（宽2, 高3, 深1）
+    // Create rectangular box - vertical (width 2, height 3, depth 1)
     const geometry = new THREE.BoxGeometry(2, 3, 1);
     const material = new THREE.MeshPhongMaterial({
-        color: 0xffffff, // 白色
+        color: 0xffffff, // White
         shininess: 100,
         specular: 0x444444
     });
     cube = new THREE.Mesh(geometry, material);
-    cube.position.set(0, 1.5, 0); // y = 高度的一半，底部在y=0
+    cube.position.set(0, 1.5, 0); // y = half of height, bottom at y=0
     scene.add(cube);
 
-    // 添加黑色描边
+    // Add black outline
     const edges = new THREE.EdgesGeometry(geometry);
     const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
     wireframe = new THREE.LineSegments(edges, lineMaterial);
-    wireframe.position.set(0, 1.5, 0); // 与立方体位置相同
+    wireframe.position.set(0, 1.5, 0); // Same position as cube
     scene.add(wireframe);
 
-    // 创建完全平面的网格地面
+    // Create flat grid floor
     const gridSize = 50;
     const gridDivisions = 80;
     const planeGeometry = new THREE.PlaneGeometry(gridSize, gridSize, gridDivisions, gridDivisions);
 
-    // 创建着色器材质实现径向渐变效果（中心绿色，向外变浅）
+    // Create shader material for radial gradient effect (green center, fading outward)
     const gridMaterial = new THREE.ShaderMaterial({
         uniforms: {
-            centerColor: { value: new THREE.Color(0x00ff88) }, // 中心亮绿色
+            centerColor: { value: new THREE.Color(0x00ff88) }, // Bright green center
             maxDistance: { value: gridSize / 2 }
         },
         vertexShader: `
@@ -80,16 +80,16 @@ function init() {
             uniform float maxDistance;
             varying vec3 vPosition;
             void main() {
-                // 计算距离中心的距离
+                // Calculate distance from center
                 float dist = length(vPosition.xy) / maxDistance;
 
-                // 中心最亮，向外渐变变浅
+                // Brightest at center, fading outward
                 float intensity = 1.0 - smoothstep(0.0, 1.0, dist);
-                intensity = pow(intensity, 1.5); // 渐变曲线
+                intensity = pow(intensity, 1.5); // Gradient curve
 
-                // 颜色强度从亮绿色渐变到接近透明
+                // Color intensity fades from bright green to nearly transparent
                 vec3 finalColor = centerColor * intensity;
-                float alpha = intensity * 0.6; // 透明度也随之减弱
+                float alpha = intensity * 0.6; // Transparency also decreases
 
                 gl_FragColor = vec4(finalColor, alpha);
             }
@@ -100,71 +100,71 @@ function init() {
     });
 
     const gridPlane = new THREE.Mesh(planeGeometry, gridMaterial);
-    gridPlane.rotation.x = -Math.PI / 2; // 旋转使其水平
-    gridPlane.position.y = 0; // 放在y=0，与立方体底部对齐
+    gridPlane.rotation.x = -Math.PI / 2; // Rotate to horizontal
+    gridPlane.position.y = 0; // Place at y=0, aligned with cube bottom
     scene.add(gridPlane);
 
-    // 创建拉杆 - 在长方体右侧
+    // Create lever - on the right side of the box
     const leverGroup = new THREE.Group();
 
-    // 拉杆手柄（球形）
+    // Lever handle (sphere)
     const handleGeometry = new THREE.SphereGeometry(0.15, 16, 16);
     const handleMaterial = new THREE.MeshPhongMaterial({
-        color: 0xff0000, // 红色手柄
+        color: 0xff0000, // Red handle
         shininess: 100
     });
     const handle = new THREE.Mesh(handleGeometry, handleMaterial);
-    handle.position.set(0, 0.8, 0); // 在杆的顶部
+    handle.position.set(0, 0.8, 0); // At the top of the rod
     leverGroup.add(handle);
 
-    // 拉杆杆身（圆柱）
+    // Lever rod (cylinder)
     const rodGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.8, 16);
     const rodMaterial = new THREE.MeshPhongMaterial({
-        color: 0x888888, // 灰色杆身
+        color: 0x888888, // Gray rod
         shininess: 50
     });
     const rod = new THREE.Mesh(rodGeometry, rodMaterial);
     rod.position.set(0, 0.4, 0);
     leverGroup.add(rod);
 
-    // 拉杆底座（圆柱）
+    // Lever base (cylinder)
     const baseGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16);
     const baseMaterial = new THREE.MeshPhongMaterial({
-        color: 0x444444, // 深灰色底座
+        color: 0x444444, // Dark gray base
         shininess: 30
     });
     const base = new THREE.Mesh(baseGeometry, baseMaterial);
     base.position.set(0, 0.05, 0);
     leverGroup.add(base);
 
-    // 拉杆位置：长方体右侧（x = 1，长方体宽度的一半）
-    leverGroup.position.set(1.3, 1.5, 0); // 在长方体右侧，底部对齐
-    leverGroup.rotation.y = -Math.PI / 2; // 向左旋转90度
+    // Lever position: right side of box (x = 1, half of box width)
+    leverGroup.position.set(1.3, 1.5, 0); // On right side of box, bottom aligned
+    leverGroup.rotation.y = -Math.PI / 2; // Rotate left 90 degrees
     scene.add(leverGroup);
 
-    // 拉杆交互变量
+    // Lever interaction variables
     let isDragging = false;
-    let leverAngle = 0; // 当前角度
-    const maxLeverAngle = Math.PI / 3; // 最大拉下角度（60度）
-    let isHovering = false; // 是否悬停在拉杆上
+    let leverAngle = 0; // Current angle
+    const maxLeverAngle = Math.PI / 3; // Maximum pull angle (60 degrees)
+    let isHovering = false; // Whether hovering over lever
 
-    // 鼠标/触摸事件监听
+    // Mouse/touch event listeners
     let mouse = new THREE.Vector2();
     let raycaster = new THREE.Raycaster();
 
     function onMouseMove(event) {
-        // 更新鼠标位置
+        // Update mouse position
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObject(handle);
 
-        // 悬停效果
+        // Hover effect
         if (intersects.length > 0 && !isDragging) {
             if (!isHovering) {
                 isHovering = true;
-                // 添加发光效果
+                // Add glow effect
                 handleMaterial.emissive.setHex(0xff3333);
                 handleMaterial.emissiveIntensity = 0.5;
                 document.body.style.cursor = 'pointer';
@@ -172,32 +172,32 @@ function init() {
         } else if (!isDragging) {
             if (isHovering) {
                 isHovering = false;
-                // 移除发光效果
+                // Remove glow effect
                 handleMaterial.emissive.setHex(0x000000);
                 handleMaterial.emissiveIntensity = 0;
                 document.body.style.cursor = 'default';
             }
         }
 
-        // 拉动逻辑
+        // Dragging logic
         if (isDragging) {
-            event.preventDefault(); // 防止选中文本
+            event.preventDefault(); // Prevent text selection
 
-            // 根据鼠标Y位置调整拉杆角度
-            const normalizedY = 1 - (event.clientY / window.innerHeight);
+            // Adjust lever angle based on mouse Y position (mouse down = lever down)
+            const normalizedY = event.clientY / window.innerHeight;
             leverAngle = THREE.MathUtils.clamp(
                 (normalizedY - 0.5) * maxLeverAngle * 2,
-                0,
+                -maxLeverAngle,
                 maxLeverAngle
             );
 
-            // 应用旋转（X轴旋转，向屏幕方向拉动）
-            leverGroup.rotation.x = leverAngle;
+            // Apply rotation (X-axis rotation, pull toward screen)
+            leverGroup.rotation.x = -leverAngle;
         }
     }
 
     function onMouseDown(event) {
-        // 计算鼠标位置
+        // Calculate mouse position
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -205,46 +205,46 @@ function init() {
         const intersects = raycaster.intersectObject(handle);
 
         if (intersects.length > 0) {
-            event.preventDefault(); // 防止选中文本
+            event.preventDefault(); // Prevent text selection
             isDragging = true;
-            // 视角已永久禁用，无需切换
+            // Camera controls are permanently disabled
         }
     }
 
     function onMouseUp(event) {
         if (isDragging) {
-            event.preventDefault(); // 防止选中文本
+            event.preventDefault(); // Prevent text selection
             isDragging = false;
-            // 视角已永久禁用，无需恢复
+            // Camera controls are permanently disabled
 
-            // 松手后弹簧振动回弹
+            // Spring rebound after release
             const startAngle = leverAngle;
             const startTime = Date.now();
-            const duration = 800; // 总持续时间800ms
-            const frequency = 12; // 振荡频率
-            const damping = 4; // 阻尼系数
+            const duration = 800; // Total duration 800ms
+            const frequency = 12; // Oscillation frequency
+            const damping = 4; // Damping coefficient
 
             const springInterval = setInterval(() => {
                 const elapsed = Date.now() - startTime;
                 const t = elapsed / duration;
 
                 if (t >= 1) {
-                    // 回弹完成
+                    // Rebound complete
                     leverAngle = 0;
                     leverGroup.rotation.x = 0;
                     clearInterval(springInterval);
                 } else {
-                    // 弹簧振荡效果：衰减振荡
-                    const decay = Math.exp(-damping * t); // 指数衰减
-                    const oscillation = Math.cos(frequency * t * Math.PI); // 余弦振荡
+                    // Spring oscillation effect: damped oscillation
+                    const decay = Math.exp(-damping * t); // Exponential decay
+                    const oscillation = Math.cos(frequency * t * Math.PI); // Cosine oscillation
                     leverAngle = startAngle * decay * oscillation;
-                    leverGroup.rotation.x = leverAngle;
+                    leverGroup.rotation.x = -leverAngle;
                 }
-            }, 16); // 约60fps
+            }, 16); // Approx 60fps
         }
     }
 
-    // 添加CSS防止选中
+    // Add CSS to prevent text selection
     document.body.style.userSelect = 'none';
     document.body.style.webkitUserSelect = 'none';
     document.body.style.mozUserSelect = 'none';
@@ -257,39 +257,39 @@ function init() {
     window.addEventListener('touchend', onMouseUp);
 
 
-    // 添加环境光 - 增强亮度
+    // Add ambient light - enhanced brightness
     const ambientLight = new THREE.AmbientLight(0x808080, 2);
     scene.add(ambientLight);
 
-    // 添加方向光 - 增强亮度
+    // Add directional light - enhanced brightness
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
     directionalLight.position.set(5, 5, 5);
     scene.add(directionalLight);
 
-    // 添加点光源 - 增强亮度
+    // Add point light - enhanced brightness
     const pointLight = new THREE.PointLight(0xffffff, 1);
     pointLight.position.set(-5, 5, 5);
     scene.add(pointLight);
 
-    // 添加轨道控制器（完全禁用）
+    // Add orbit controls (completely disabled)
     controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enabled = false; // 完全禁用左键和右键视角移动
-    controls.enableRotate = false; // 禁用旋转
-    controls.enablePan = false; // 禁用平移
-    controls.enableZoom = false; // 禁用缩放
+    controls.enabled = false; // Completely disable left and right mouse camera movement
+    controls.enableRotate = false; // Disable rotation
+    controls.enablePan = false; // Disable panning
+    controls.enableZoom = false; // Disable zoom
 
-    // 初始化音频分析器
+    // Initialize audio analyser
     setupAudioAnalyser();
 
-    // 监听窗口大小变化
+    // Listen for window resize
     window.addEventListener('resize', onWindowResize, false);
 }
 
-// 设置音频分析器
+// Setup audio analyser
 function setupAudioAnalyser() {
     audioElement = document.getElementById('bgMusic');
 
-    // 当音频开始播放时初始化分析器
+    // Initialize analyser when audio starts playing
     audioElement.addEventListener('play', function() {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -306,22 +306,22 @@ function setupAudioAnalyser() {
     });
 }
 
-// 分析音频获取鼓点强度
+// Analyze audio to get bass intensity
 function getBasslevel() {
     if (!analyser || !dataArray) return 0;
 
     analyser.getByteFrequencyData(dataArray);
 
-    // 获取低频部分（鼓点通常在低频）
+    // Get low frequency portion (drums are usually in low frequencies)
     let sum = 0;
-    const lowFreqCount = Math.floor(dataArray.length * 0.15); // 前15%的频率
+    const lowFreqCount = Math.floor(dataArray.length * 0.15); // First 15% of frequencies
 
     for (let i = 0; i < lowFreqCount; i++) {
         sum += dataArray[i];
     }
 
     const average = sum / lowFreqCount;
-    return average / 255; // 归一化到0-1
+    return average / 255; // Normalize to 0-1
 }
 
 function onWindowResize() {
@@ -333,33 +333,33 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // 固定128 BPM节拍触发
+    // Fixed 128 BPM beat trigger
     const currentTime = Date.now();
     if (currentTime - lastFixedBeatTime >= BEAT_INTERVAL) {
         onBeat = true;
         lastFixedBeatTime = currentTime;
         beatCount++;
 
-        // 获取当前音频能量作为强度调节
+        // Get current audio energy for intensity adjustment
         const currentEnergy = getBasslevel();
-        // 强弱交替：偶数拍为强拍，奇数拍为弱拍
+        // Strong-weak alternation: even beats are strong, odd beats are weak
         const isStrongBeat = beatCount % 2 === 0;
-        const beatMultiplier = isStrongBeat ? 1.0 : 0.5; // 强拍100%，弱拍50%
+        const beatMultiplier = isStrongBeat ? 1.0 : 0.5; // Strong beat 100%, weak beat 50%
 
-        // 最终强度 = 音频能量 × 强弱系数
+        // Final intensity = audio energy × strong-weak coefficient
         currentBeatStrength = Math.min(currentEnergy, 1.0) * beatMultiplier;
     } else {
         onBeat = false;
     }
 
-    // 更新BPM显示（仅显示固定128）
+    // Update BPM display (only show fixed 128)
     const bpmDisplay = document.getElementById('bpmValue');
     const beatIndicator = document.getElementById('beatIndicator');
     if (bpmDisplay) {
         bpmDisplay.textContent = FIXED_BPM;
     }
 
-    // 更新节拍指示器
+    // Update beat indicator
     if (beatIndicator) {
         if (onBeat) {
             beatIndicator.classList.add('active');
@@ -368,37 +368,37 @@ function animate() {
         }
     }
 
-    // 更新控制器（让用户可以自由操作视角）
+    // Update controls (allows user to freely operate camera)
     controls.update();
 
-    // 镜头伸缩效果 - 使用偏移量，不影响OrbitControls
+    // Camera zoom effect - use offsets, doesn't affect OrbitControls
     if (onBeat) {
-        // 根据节拍强度计算偏移量（减弱幅度）
-        const zoomIntensity = currentBeatStrength * 0.3; // 最大拉近0.3个单位
-        const fovChange = currentBeatStrength * 2; // FOV最大减少2度
+        // Calculate offsets based on beat intensity (reduced amplitude)
+        const zoomIntensity = currentBeatStrength * 0.3; // Max zoom in 0.3 units
+        const fovChange = currentBeatStrength * 2; // FOV max decrease 2 degrees
 
-        // 轻微随机抖动
-        const shakeAmount = currentBeatStrength * 0.05; // 抖动幅度
+        // Slight random shake
+        const shakeAmount = currentBeatStrength * 0.05; // Shake amplitude
 
-        // 设置偏移量
+        // Set offsets
         cameraOffsetZ = -zoomIntensity;
         cameraOffsetX = (Math.random() - 0.5) * shakeAmount;
         cameraOffsetY = (Math.random() - 0.5) * shakeAmount;
         fovOffset = -fovChange;
 
-        // 立方体缩放效果
+        // Cube scaling effect
         const scaleIncrease = 1.0 + currentBeatStrength * 0.03;
         cube.scale.set(scaleIncrease, scaleIncrease, scaleIncrease);
         wireframe.scale.copy(cube.scale);
     } else {
-        // 快速衰减偏移量
+        // Fast decay of offsets
         const decay = 0.7;
         cameraOffsetX *= decay;
         cameraOffsetY *= decay;
         cameraOffsetZ *= decay;
         fovOffset *= decay;
 
-        // 快速回归立方体缩放
+        // Fast reset of cube scaling
         const scaleReset = 0.25;
         cube.scale.x += (1.0 - cube.scale.x) * scaleReset;
         cube.scale.y += (1.0 - cube.scale.y) * scaleReset;
@@ -406,7 +406,7 @@ function animate() {
         wireframe.scale.copy(cube.scale);
     }
 
-    // 应用临时偏移（不影响OrbitControls的基础位置）
+    // Apply temporary offsets (doesn't affect OrbitControls base position)
     const tempPosX = camera.position.x;
     const tempPosY = camera.position.y;
     const tempPosZ = camera.position.z;
@@ -418,10 +418,10 @@ function animate() {
     camera.fov = originalFOV + fovOffset;
     camera.updateProjectionMatrix();
 
-    // 渲染场景
+    // Render scene
     renderer.render(scene, camera);
 
-    // 恢复相机位置（让OrbitControls在下一帧正常工作）
+    // Restore camera position (allows OrbitControls to work normally next frame)
     camera.position.x = tempPosX;
     camera.position.y = tempPosY;
     camera.position.z = tempPosZ;
@@ -429,6 +429,6 @@ function animate() {
     camera.updateProjectionMatrix();
 }
 
-// 初始化并开始动画
+// Initialize and start animation
 init();
 animate();
