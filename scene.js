@@ -147,6 +147,8 @@ function init() {
     let leverAngle = 0; // Current angle
     const maxLeverAngle = Math.PI / 3; // Maximum pull angle (60 degrees)
     let isHovering = false; // Whether hovering over lever
+    let dragStartY = 0; // Mouse Y position when drag starts
+    let dragStartAngle = 0; // Lever angle when drag starts
 
     // Mouse/touch event listeners
     let mouse = new THREE.Vector2();
@@ -183,16 +185,20 @@ function init() {
         if (isDragging) {
             event.preventDefault(); // Prevent text selection
 
-            // Adjust lever angle based on mouse Y position (mouse down = lever down)
-            const normalizedY = event.clientY / window.innerHeight;
+            // Calculate mouse movement (positive = down, negative = up)
+            const deltaY = event.clientY - dragStartY;
+            const sensitivity = 3; // Pixels to angle conversion factor
+
+            // Mouse down = lever pulls down (negative rotation.x)
+            // Mouse up = lever pulls up (positive rotation.x)
             leverAngle = THREE.MathUtils.clamp(
-                (normalizedY - 0.5) * maxLeverAngle * 2,
+                dragStartAngle - (deltaY / window.innerHeight) * sensitivity,
                 -maxLeverAngle,
                 maxLeverAngle
             );
 
-            // Apply rotation (X-axis rotation, pull toward screen)
-            leverGroup.rotation.x = -leverAngle;
+            // Apply rotation (X-axis rotation, negative = toward screen)
+            leverGroup.rotation.x = leverAngle;
         }
     }
 
@@ -207,6 +213,8 @@ function init() {
         if (intersects.length > 0) {
             event.preventDefault(); // Prevent text selection
             isDragging = true;
+            dragStartY = event.clientY;
+            dragStartAngle = leverAngle;
             // Camera controls are permanently disabled
         }
     }
@@ -238,7 +246,7 @@ function init() {
                     const decay = Math.exp(-damping * t); // Exponential decay
                     const oscillation = Math.cos(frequency * t * Math.PI); // Cosine oscillation
                     leverAngle = startAngle * decay * oscillation;
-                    leverGroup.rotation.x = -leverAngle;
+                    leverGroup.rotation.x = leverAngle;
                 }
             }, 16); // Approx 60fps
         }
