@@ -185,19 +185,20 @@ function init() {
         if (isDragging) {
             event.preventDefault(); // Prevent text selection
 
-            // Calculate mouse movement (positive = down, negative = up)
+            // Calculate mouse Y movement in pixels
             const deltaY = event.clientY - dragStartY;
-            const sensitivity = 3; // Pixels to angle conversion factor
 
-            // Mouse down = lever pulls down (negative rotation.x)
-            // Mouse up = lever pulls up (positive rotation.x)
+            // Convert pixel movement to rotation angle (increased sensitivity)
+            // Positive deltaY (mouse down) = negative angle (lever down toward screen)
+            const angleChange = -(deltaY * 0.003); // Higher sensitivity: 3 pixels = 0.009 radians
+
             leverAngle = THREE.MathUtils.clamp(
-                dragStartAngle - (deltaY / window.innerHeight) * sensitivity,
+                dragStartAngle + angleChange,
                 -maxLeverAngle,
                 maxLeverAngle
             );
 
-            // Apply rotation (X-axis rotation, negative = toward screen)
+            // Apply rotation (X-axis rotation)
             leverGroup.rotation.x = leverAngle;
         }
     }
